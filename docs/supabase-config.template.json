@@ -1,0 +1,6 @@
+{
+  "// 说明": "请在 Supabase Dashboard 中获取以下配置，填入后删除此行注释",
+  "// 获取方式": "登录 https://supabase.com → 你的项目 → Settings → API",
+  "supabase_url": "https://YOUR-PROJECT-REF.supabase.co",
+  "supabase_anon_key": "YOUR_SUPABASE_ANON_OR_PUBLISHABLE_KEY"
+}
