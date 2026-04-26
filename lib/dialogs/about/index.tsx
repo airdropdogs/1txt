@@ -24,7 +24,7 @@ export class AboutDialog extends Component<Props> {
           <div className="about-top">
             <SimplenoteLogo />
 
-            <h1>Simplenote</h1>
+            <h1>1TXT</h1>
             <small>Version {appVersion}</small>
           </div>
 
@@ -32,24 +32,24 @@ export class AboutDialog extends Component<Props> {
             <li>
               <a
                 target="_blank"
-                href="https://simplenote.com/blog/"
+                href="https://github.com/airdropdogs/1txt"
                 rel="noopener noreferrer"
               >
-                <span className="about-links-title">Blog</span>
+                <span className="about-links-title">Source Code</span>
                 <br />
-                simplenote.com/blog/
+                github.com/airdropdogs/1txt
               </a>
               <TopRightArrowIcon />
             </li>
             <li>
               <a
                 target="_blank"
-                href="https://twitter.com/simplenoteapp"
+                href="https://github.com/airdropdogs/1txt/issues"
                 rel="noopener noreferrer"
               >
-                <span className="about-links-title">Twitter</span>
+                <span className="about-links-title">Issues &amp; Feedback</span>
                 <br />
-                @simplenoteapp
+                Report a bug or request a feature
               </a>
               <TopRightArrowIcon />
             </li>
@@ -59,21 +59,25 @@ export class AboutDialog extends Component<Props> {
                 href="https://github.com/Automattic/simplenote-electron"
                 rel="noopener noreferrer"
               >
-                <span className="about-links-title">Contribute</span>
+                <span className="about-links-title">
+                  Built on Simplenote (GPL-2.0)
+                </span>
                 <br />
-                GitHub.com
+                Original project by Automattic, Inc.
               </a>
               <TopRightArrowIcon />
             </li>
             <li>
               <a
                 target="_blank"
-                href="https://automattic.com/work-with-us/"
+                href="https://github.com/Vanessa219/vditor"
                 rel="noopener noreferrer"
               >
-                Made with love by the folks at Automattic.
+                <span className="about-links-title">
+                  Editor powered by Vditor (MIT)
+                </span>
                 <br />
-                Are you a developer? We&rsquo;re hiring.
+                Markdown WYSIWYG by Vanessa219
               </a>
               <TopRightArrowIcon />
             </li>
@@ -81,39 +85,12 @@ export class AboutDialog extends Component<Props> {
 
           <div className="about-bottom">
             <p>
-              <a
-                target="_blank"
-                href="https://simplenote.com/privacy/"
-                rel="noopener noreferrer"
-              >
-                Privacy Policy
-              </a>{' '}
-              &nbsp;&bull;&nbsp;{' '}
-              <a
-                target="_blank"
-                href="https://simplenote.com/terms/"
-                rel="noopener noreferrer"
-              >
-                Terms of Service
-              </a>
+              Open-source minimalist Markdown notes with live preview and
+              free multi-device sync, powered by Supabase.
             </p>
             <p>
-              <a
-                target="_blank"
-                href="https://automattic.com/privacy/#california-consumer-privacy-act-ccpa"
-                rel="noopener noreferrer"
-              >
-                Privacy Notice for California Users
-              </a>
-            </p>
-            <p>
-              <a
-                target="_blank"
-                href="https://automattic.com/"
-                rel="noopener noreferrer"
-              >
-                &copy; {thisYear} Automattic, Inc.
-              </a>
+              &copy; {thisYear} airdropdogs · Released under the GNU
+              General Public License v2.0.
             </p>
           </div>
 

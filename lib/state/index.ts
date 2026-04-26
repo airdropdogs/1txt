@@ -13,8 +13,28 @@ import {
   applyMiddleware,
 } from 'redux';
 import persistState from 'redux-localstorage';
-import { omit } from 'lodash';
+import { omit, pick } from 'lodash';
 import { isElectron } from '../utils/platform';
+
+// Whitelist of keys the `settings` reducer currently knows about. Anything else
+// found in the persisted localStorage blob (e.g. legacy `localSyncDir` from the
+// abandoned 1TXT_Vault local-folder experiment) is dropped on load to avoid the
+// noisy "Unexpected key ... found in preloadedState" warning from redux.
+const KNOWN_SETTINGS_KEYS = [
+  'accountName',
+  'autoHideMenuBar',
+  'focusModeEnabled',
+  'keyboardShortcuts',
+  'lineLength',
+  'markdownEnabled',
+  'noteDisplay',
+  'sendNotifications',
+  'sortReversed',
+  'sortTagsAlpha',
+  'sortType',
+  'spellCheckEnabled',
+  'theme',
+] as const;
 
 import * as persistence from './persistence';
 import { middleware as analyticsMiddleware } from './analytics/middleware';
@@ -62,7 +82,7 @@ export const makeStore = (
         {
           ...initialData,
           settings: {
-            ...initialData.settings,
+            ...pick(initialData.settings, KNOWN_SETTINGS_KEYS),
             accountName: initialData.settings?.accountName ?? accountName,
           },
         },

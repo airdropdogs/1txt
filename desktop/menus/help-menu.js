@@ -14,7 +14,8 @@ const buildHelpMenu = (mainWindow, isAuthenticated) => {
     {
       label: 'Help && &Support',
       accelerator: platform.isLinux() ? 'F1' : null,
-      click: () => shell.openExternal('https://simplenote.com/help'),
+      click: () =>
+        shell.openExternal('https://github.com/airdropdogs/1txt#readme'),
     },
     {
       label: '&Keyboard Shortcuts',

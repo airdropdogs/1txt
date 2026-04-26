@@ -23,6 +23,38 @@ const contextMenu = require('./context-menu');
 
 require('module').globalPaths.push(path.resolve(path.join(__dirname)));
 
+// --- Portable / "green" mode: redirect userData next to the EXE ---
+//
+// We ship Windows builds as a plain ZIP (target=zip): the user unzips into any
+// folder and double-clicks 1TXT.exe. To make the install truly portable we
+// redirect Electron's userData (IndexedDB / Local Storage / cache / logs /
+// session) into a `1txt-data/` folder beside the EXE — moving the folder
+// elsewhere keeps every note and login intact.
+//
+// Heuristic: any packaged build whose EXE does NOT live under a system
+// install location (Program Files / WindowsApps / AppData on Win, /Applications
+// on macOS, /usr|/opt on Linux) is treated as portable. Dev runs (electron
+// .) always fall through to the OS default location.
+const SYSTEM_INSTALL_PATTERNS = [
+  /\\Program Files( \(x86\))?\\/i,
+  /\\WindowsApps\\/i,
+  /\\AppData\\Local\\Programs\\/i,
+  /^\/Applications\//,
+  /^\/usr\//,
+  /^\/opt\//,
+];
+
+if (app.isPackaged) {
+  const exeDir = path.dirname(app.getPath('exe'));
+  const isSystemInstall = SYSTEM_INSTALL_PATTERNS.some((re) => re.test(exeDir));
+  if (!isSystemInstall) {
+    const portableUserData = path.join(exeDir, '1txt-data');
+    app.setPath('userData', portableUserData);
+    app.setPath('appData', portableUserData);
+    app.setPath('logs', path.join(portableUserData, 'logs'));
+  }
+}
+
 module.exports = function main() {
   // Keep a global reference of the window object, if you don't, the window will
   // be closed automatically when the JavaScript object is GCed.
@@ -43,7 +75,7 @@ module.exports = function main() {
   }
 
   app.on('will-finish-launching', function () {
-    setTimeout(updater.ping.bind(updater), config.updater.delay);
+    setTimeout(() => updater.ping(mainWindow), config.updater.delay);
     app.on('open-url', function (event, url) {
       event.preventDefault();
       if (url.startsWith('simplenote://auth')) {
@@ -272,6 +304,6 @@ module.exports = function main() {
   // This method will be called when Electron has finished
   // initialization and is ready to create browser windows.
   app.on('ready', activateWindow);
-  app.on('ready', () => app.setAppUserModelId('com.automattic.simplenote'));
+  app.on('ready', () => app.setAppUserModelId('io.github.airdropdogs.1txt'));
   app.on('activate', activateWindow);
 };

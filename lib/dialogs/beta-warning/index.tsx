@@ -23,21 +23,26 @@ export class BetaWarning extends Component<Props> {
           <div className="about-top">
             <SimplenoteLogo />
 
-            <h1>Simplenote</h1>
+            <h1>1TXT</h1>
           </div>
 
+          <p style={{ textAlign: 'center' }}>This is a beta release of 1TXT.</p>
+
           <p style={{ textAlign: 'center' }}>
-            This is a beta release of Simplenote.
+            Sync, account and migration paths may still change between
+            releases. Please keep regular backups of important notes.
           </p>
 
           <p style={{ textAlign: 'center' }}>
-            This release provides an opportunity to test and share early
-            feedback for a major overhaul of the internals of the app.
-          </p>
-
-          <p style={{ textAlign: 'center' }}>
-            Please use with caution and the understanding that <br />
-            this comes without any stability guarantee.
+            Bugs &amp; feedback welcome on{' '}
+            <a
+              href="https://github.com/airdropdogs/1txt/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub Issues
+            </a>
+            .
           </p>
 
           <button

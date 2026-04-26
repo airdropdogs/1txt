@@ -1,19 +1,18 @@
 {
-  "productName": "Simplenote",
-  "appId": "com.automattic.simplenote",
-  "generateUpdatesFilesForAllChannels": true,
+  "productName": "1TXT",
+  "appId": "io.github.airdropdogs.1txt",
+  "copyright": "Copyright © 2026 airdropdogs. Forked from Simplenote (Automattic), GPL-2.0.",
   "directories": {
     "output": "./release",
     "buildResources": "./resources"
   },
   "files": ["desktop", "dist", "shared"],
+  "asar": true,
+  "publish": null,
   "mac": {
     "icon": "./resources/images/app-icon.icns",
-    "category": "public.app-category.social-networking",
-    "artifactName": "Simplenote-macOS-${version}.${ext}",
-    "entitlements": "./resources/macos/entitlements.mac.plist",
-    "entitlementsInherit": "./resources/macos/entitlements.mac.inherit.plist",
-    "hardenedRuntime": true,
+    "category": "public.app-category.productivity",
+    "artifactName": "1TXT-macOS-${version}-${arch}.${ext}",
     "target": [
       {
         "target": "dmg",
@@ -24,11 +23,12 @@
         "arch": ["universal"]
       }
     ],
-    "mergeASARs": false
+    "mergeASARs": false,
+    "identity": null
   },
   "dmg": {
-    "title": "Simplenote Installer",
-    "artifactName": "Simplenote-macOS-${version}.${ext}",
+    "title": "1TXT Installer",
+    "artifactName": "1TXT-macOS-${version}.${ext}",
     "icon": "./resources/images/dmg-icon.icns",
     "iconSize": 150,
     "background": "./resources/images/dmg-background.png",
@@ -48,64 +48,56 @@
   },
   "win": {
     "icon": "resources/images/simplenote.ico",
-    "certificateSubjectName": "Automattic, Inc.",
-    "artifactName": "Simplenote-win-${version}-${arch}.${ext}",
+    "artifactName": "1TXT-${version}-win-${arch}.${ext}",
     "target": [
       {
+        "target": "zip",
+        "arch": ["x64"]
+      },
+      {
         "target": "nsis",
-        "arch": ["ia32", "x64"]
+        "arch": ["x64"]
       }
     ]
   },
   "nsis": {
-    "artifactName": "Simplenote-win-${version}-${arch}.${ext}",
-    "deleteAppDataOnUninstall": true,
-    "oneClick": false
+    "artifactName": "1TXT-Setup-${version}-${arch}.${ext}",
+    "deleteAppDataOnUninstall": false,
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "shortcutName": "1TXT",
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
   },
   "linux": {
-    "artifactName": "Simplenote-linux-${version}-${arch}.${ext}",
+    "artifactName": "1TXT-linux-${version}-${arch}.${ext}",
     "target": [
       {
         "target": "AppImage",
-        "arch": ["x64", "arm64"]
-      },
-      {
-        "target": "deb",
-        "arch": ["x64", "arm64"]
-      },
-      {
-        "target": "rpm",
         "arch": ["x64"]
       },
       {
-        "target": "tar.gz",
-        "arch": ["x64", "arm64"]
+        "target": "deb",
+        "arch": ["x64"]
       }
     ],
-    "synopsis": "The simplest way to keep notes",
+    "synopsis": "Open-source Markdown notes with Supabase sync",
     "category": "Utility",
-    "executableName": "simplenote",
+    "executableName": "1txt",
     "desktop": {
-      "Name": "Simplenote",
-      "Comment": "Simplenote for Linux",
+      "Name": "1TXT",
+      "Comment": "Markdown notes with Supabase sync",
       "GenericName": "Note Taking Application",
       "Type": "Application",
-      "Icon": "simplenote",
+      "Icon": "1txt",
       "StartupNotify": true,
-      "Categories": "Utility"
+      "Categories": "Utility;Office"
     },
-    "vendor": "Automattic, Inc.",
-    "maintainer": "Automattic, Inc. <support@simplenote.com>"
+    "vendor": "airdropdogs",
+    "maintainer": "airdropdogs"
   },
-  "protocols": [
-    {
-      "name": "simplenote",
-      "schemes": ["simplenote"]
-    }
-  ],
   "deb": {
     "compression": "gz"
-  },
-  "afterSign": "./after_sign_hook.js",
-  "afterAllArtifactBuild": "./after_sign_hook.js"
+  }
 }

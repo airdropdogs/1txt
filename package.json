@@ -25,9 +25,17 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,scss,css,json,md}\"",
     "build": "cross-env NODE_ENV=production webpack --config ./webpack.config.js",
+    "build:win": "npm run build && electron-builder --win --x64",
+    "build:win:zip": "npm run build && electron-builder --win zip --x64",
+    "build:win:nsis": "npm run build && electron-builder --win nsis --x64",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux",
+    "pack:win": "electron-builder --win --x64 --dir",
     "deploy": "./bin/deploy.sh",
     "prepare": "git config --local core.hooksPath .githooks",
-    "postinstall": "node scripts/patch-electron.js"
+    "postinstall": "node scripts/patch-electron.js",
+    "release": "node scripts/release.js",
+    "release:win": "node scripts/release.js --build win"
   },
   "repository": {
     "type": "git",
@@ -152,8 +160,6 @@
     "core-js": "3.40.0",
     "date-fns": "4.1.0",
     "electron-fetch": "1.9.1",
-    "electron-progressbar": "2.2.1",
-    "electron-updater": "6.3.9",
     "electron-window-state": "5.0.3",
     "file-saver": "2.0.5",
     "focus-trap-react": "10.2.3",
