@@ -5,6 +5,7 @@ desktop-build/
 dist/
 logs/
 release/
+1TXT_DOC/
 vendor/
 .env
 temp-electron/
