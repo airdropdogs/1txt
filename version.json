@@ -1,8 +1,8 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "downloadPageUrl": "https://github.com/airdropdogs/1txt/releases/latest",
   "webAppUrl": "https://1txt.pkpkpk.com",
   "releaseNotes": "First public build: Vditor WYSIWYG, Supabase diff sync, email OTP sign-in, resizable sidebar.\n\nSee RELEASE-NOTES.md.",
-  "minSupportedVersion": "1.0.1",
+  "minSupportedVersion": "1.0.2",
   "force": false
 }
