@@ -3,25 +3,25 @@
 /**
  * 1TXT lightweight updater
  *
- * 设计原则：极简、不下载、不安装。
+ * Principles: minimal — no auto-download, no silent install.
  *
- *   1. 应用启动后异步拉一次 metadata JSON（来自自托管服务器或 GitHub Release）
- *   2. 比对 latest.version 与当前 app.getVersion()
- *   3. 命中就弹一个对话框：[去下载] / [跳过此版本]
- *      - 去下载：shell.openExternal(downloadPageUrl) 跳浏览器
- *      - 跳过此版本：把 version 写入用户数据目录的 skipped-versions.json，下次不再提示
- *   4. 如果 metadata 里 force === true（或当前版本 < minSupportedVersion），
- *      改弹强制升级对话框：[升级桌面版] / [使用 Web 端]，不可关闭、不可跳过
+ *   1. After launch, fetch metadata JSON (self-hosted or GitHub raw).
+ *   2. Compare metadata.version to app.getVersion().
+ *   3. If newer: dialog [Download] / [Skip this version] / [Remind me later].
+ *      - Download: shell.openExternal(downloadPageUrl)
+ *      - Skip: append version to userData/skipped-versions.json
+ *   4. If force === true or current < minSupportedVersion: blocking dialog
+ *      [Upgrade desktop] / [Use web app] / [Quit] — cannot dismiss without choosing.
  *
- * metadata JSON schema（你需要在 downloadPageUrl 同域托管这个文件）：
+ * Metadata JSON (same shape as repo-root version.json), e.g.:
  *
  *   {
- *     "version": "1.2.0",                       // 必填，最新版本号
- *     "downloadPageUrl": "http://1txt.pkpkpk.com/down",
- *     "webAppUrl": "http://1txt.pkpkpk.com",
- *     "releaseNotes": "本次更新...",             // 可选，对话框正文
- *     "minSupportedVersion": "1.0.0",           // 可选，低于此版本必须强制升级
- *     "force": false                            // 可选，true 时所有人强制升级
+ *     "version": "1.2.0",
+ *     "downloadPageUrl": "https://github.com/org/repo/releases/latest",
+ *     "webAppUrl": "https://example.com",
+ *     "releaseNotes": "Short summary for the dialog.",
+ *     "minSupportedVersion": "1.0.0",
+ *     "force": false
  *   }
  */
 
@@ -105,18 +105,18 @@ function isValidVersion(v) {
 function showUpdateDialog(meta, parentWindow) {
   const current = app.getVersion();
   const downloadUrl = meta.downloadPageUrl || config.updater.downloadPageUrl;
-  const message = `1TXT ${meta.version} 已发布`;
+  const message = `1TXT ${meta.version} is available`;
   const detail =
-    `当前版本：${current}\n最新版本：${meta.version}\n\n` +
+    `Current version: ${current}\nLatest version: ${meta.version}\n\n` +
     (meta.releaseNotes ? meta.releaseNotes + '\n\n' : '') +
-    `点击"去下载"将在浏览器中打开下载页。`;
+    `Choose Download to open the download page in your browser.`;
 
   const result = dialog.showMessageBoxSync(parentWindow || null, {
     type: 'info',
-    buttons: ['去下载', '跳过此版本', '稍后提醒'],
+    buttons: ['Download', 'Skip this version', 'Remind me later'],
     defaultId: 0,
     cancelId: 2,
-    title: '发现新版本',
+    title: 'Update available',
     message,
     detail,
     noLink: true,
@@ -132,25 +132,25 @@ function showUpdateDialog(meta, parentWindow) {
     }
     log.info(`User skipped version ${meta.version}`);
   }
-  // 选项 2（稍后提醒）：什么也不做，下次启动再问
+  // Remind me later: no-op; prompt again on next launch
 }
 
 function showForceUpgradeDialog(meta, parentWindow) {
   const downloadUrl = meta.downloadPageUrl || config.updater.downloadPageUrl;
   const webUrl = meta.webAppUrl || config.updater.webAppUrl;
-  const message = '当前版本已不再支持，请立即升级';
+  const message = 'This version is no longer supported. Please upgrade.';
   const detail =
-    `当前版本：${app.getVersion()}\n最新版本：${meta.version}\n\n` +
+    `Current version: ${app.getVersion()}\nLatest version: ${meta.version}\n\n` +
     (meta.releaseNotes ||
-      '由于同步协议或数据格式发生重大变更，旧版本无法继续使用。') +
-    '\n\n请选择升级方式：';
+      'The sync protocol or data format has changed; this build cannot continue.') +
+    '\n\nChoose how to proceed:';
 
   const result = dialog.showMessageBoxSync(parentWindow || null, {
     type: 'warning',
-    buttons: ['升级桌面版', '使用 Web 端', '退出'],
+    buttons: ['Upgrade desktop', 'Use web app', 'Quit'],
     defaultId: 0,
     cancelId: 2,
-    title: '需要升级',
+    title: 'Upgrade required',
     message,
     detail,
     noLink: true,
@@ -184,9 +184,9 @@ async function check({ silent = true, parentWindow = null } = {}) {
     if (!silent) {
       dialog.showMessageBoxSync(parentWindow || null, {
         type: 'error',
-        buttons: ['确定'],
-        title: '检查更新失败',
-        message: '无法连接到更新服务器',
+        buttons: ['OK'],
+        title: 'Update check failed',
+        message: 'Could not reach the update server',
         detail: e.message,
       });
     }
@@ -200,7 +200,7 @@ async function check({ silent = true, parentWindow = null } = {}) {
 
   const current = app.getVersion();
 
-  // 1) 强制升级判断
+  // 1) Forced upgrade
   const minVer = meta.minSupportedVersion;
   const mustForce =
     meta.force === true ||
@@ -210,20 +210,20 @@ async function check({ silent = true, parentWindow = null } = {}) {
     return;
   }
 
-  // 2) 普通升级提示
+  // 2) Optional upgrade
   if (semver.lte(meta.version, current)) {
     if (!silent) {
       dialog.showMessageBoxSync(parentWindow || null, {
         type: 'info',
-        buttons: ['确定'],
-        title: '已是最新版本',
-        message: `1TXT ${current} 已是最新版本`,
+        buttons: ['OK'],
+        title: 'Up to date',
+        message: `1TXT ${current} is the latest version`,
       });
     }
     return;
   }
 
-  // 静默检查时尊重"跳过此版本"
+  // Silent check: honor skipped list
   if (silent && readSkipped().includes(meta.version)) {
     log.debug(`Skip notify: user previously skipped ${meta.version}`);
     return;
@@ -233,14 +233,14 @@ async function check({ silent = true, parentWindow = null } = {}) {
 }
 
 module.exports = {
-  /** 启动后自动调用，静默失败 + 尊重跳过列表 */
+  /** Called after launch; failures are silent; honors skip list */
   ping(parentWindow) {
     check({ silent: true, parentWindow }).catch((e) =>
       log.warn('ping error: ' + e.message)
     );
   },
 
-  /** 用户主动从菜单触发，失败 / 已是最新都会弹提示 */
+  /** Menu action: show errors and “up to date” dialogs */
   pingAndShowProgress(parentWindow) {
     check({ silent: false, parentWindow }).catch((e) =>
       log.warn('manual check error: ' + e.message)

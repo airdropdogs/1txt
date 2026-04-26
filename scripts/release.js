@@ -2,22 +2,22 @@
 'use strict';
 
 /**
- * 1TXT 一键发版脚本
+ * 1TXT release helper
  *
- * 用法：
- *   npm run release            # 不打包，只升版本号 + commit + tag + push
- *   npm run release:win        # 同时跑 npm run build:win
- *   node scripts/release.js --skip-push     # 本地试跑，不 push
- *   node scripts/release.js --skip-tag      # 不打 tag（仅升 version）
+ * Usage:
+ *   npm run release            # bump version, commit, tag, push (no build)
+ *   npm run release:win        # also runs npm run build:win
+ *   node scripts/release.js --skip-push     # dry run without push
+ *   node scripts/release.js --skip-tag      # bump only, no tag
  *
- * 流程（每一步失败立即 abort，不会留下半成品）：
- *   1. 读 version.json（必须存在），版本号必须 > package.json 当前版本
- *   2. 检查 git 工作区干净（仅允许 version.json 修改）
- *   3. 同步 package.json.version
- *   4. （可选）npm run build:win
+ * Steps (abort on first failure):
+ *   1. Read version.json (required); new version must be > package.json
+ *   2. Git working tree must be clean except version.json
+ *   3. Sync package.json.version
+ *   4. Optional: npm run build:<target>
  *   5. git add + commit + tag
  *   6. git push --follow-tags
- *   7. 打开 release/ 文件夹 + 浏览器到 GitHub New Release 页
+ *   7. Open release/ + GitHub “New release” in the browser (Windows)
  */
 
 const fs = require('fs');
@@ -58,9 +58,9 @@ function step(n, msg) {
   console.log(`\n[${n}] ${msg}`);
 }
 
-// ---- 1. 读 + 校验 -----------------------------------------------------------
+// ---- 1. Read + validate -----------------------------------------------------------
 
-if (!fs.existsSync(VERSION_JSON)) fail('version.json 不存在');
+if (!fs.existsSync(VERSION_JSON)) fail('version.json is missing');
 
 const versionJson = readJson(VERSION_JSON);
 const packageJson = readJson(PACKAGE_JSON);
@@ -68,49 +68,54 @@ const newVer = versionJson.version;
 const oldVer = packageJson.version;
 
 if (!semver.valid(newVer)) {
-  fail(`version.json.version 不是合法 semver: ${newVer}`);
+  fail(`version.json.version is not valid semver: ${newVer}`);
 }
 if (semver.eq(newVer, oldVer)) {
-  fail(`version.json.version (${newVer}) 与 package.json 一致，没有什么要发的。\n请先编辑 version.json 把版本号往上提。`);
+  fail(
+    `version.json.version (${newVer}) equals package.json (${oldVer}); nothing to release.\n` +
+      'Bump the version in version.json first.'
+  );
 }
 if (semver.lt(newVer, oldVer)) {
-  fail(`version.json.version (${newVer}) 比 package.json (${oldVer}) 还小，拒绝降级。`);
+  fail(
+    `version.json.version (${newVer}) is lower than package.json (${oldVer}); downgrades are not allowed.`
+  );
 }
 if (!versionJson.releaseNotes || !versionJson.releaseNotes.trim()) {
-  fail('version.json.releaseNotes 不能为空，先写两句给用户看的更新说明。');
+  fail('version.json.releaseNotes must be non-empty (short text for the update dialog).');
 }
 
 console.log(`\n▶ Releasing 1TXT v${oldVer} → v${newVer}`);
 console.log(`  release notes: ${versionJson.releaseNotes.split('\n')[0].slice(0, 60)}…`);
 
-// ---- 2. git 工作区检查 ------------------------------------------------------
+// ---- 2. Git working tree ------------------------------------------------------
 
-step(1, '检查 git 工作区');
+step(1, 'Check git working tree');
 const status = shOut('git status --porcelain');
 const dirtyOther = status
   .split('\n')
   .filter(Boolean)
   .filter((line) => !/\sversion\.json$/.test(line));
 if (dirtyOther.length > 0) {
-  console.error('  工作区还有未提交修改（除 version.json 外）：');
+  console.error('  Uncommitted changes (other than version.json):');
   console.error('  ' + dirtyOther.join('\n  '));
-  fail('请先把它们 commit 掉再发版。');
+  fail('Commit or stash everything except version.json before releasing.');
 }
 
-// ---- 3. 同步 package.json.version -------------------------------------------
+// ---- 3. Sync package.json.version -------------------------------------------
 
-step(2, `同步 package.json.version → ${newVer}`);
+step(2, `Sync package.json.version → ${newVer}`);
 packageJson.version = newVer;
 writeJson(PACKAGE_JSON, packageJson);
 
-// ---- 4. （可选）打包 --------------------------------------------------------
+// ---- 4. Optional build --------------------------------------------------------
 
 const buildTarget = flagValue('--build');
 if (buildTarget) {
-  step(3, `打包 ${buildTarget}`);
+  step(3, `Build ${buildTarget}`);
   sh(`npm run build:${buildTarget}`);
 } else {
-  console.log('\n[3] 跳过打包（用 --build win 启用，或自己后续手工 npm run build:win）');
+  console.log('\n[3] Skipping build (pass --build win or run npm run build:win later)');
 }
 
 // ---- 5. git commit + tag ---------------------------------------------------
@@ -129,25 +134,24 @@ if (!flag('--skip-push')) {
   step(5, 'git push --follow-tags');
   sh('git push --follow-tags');
 } else {
-  console.log('\n[5] 跳过 push（--skip-push）');
+  console.log('\n[5] Skipping push (--skip-push)');
 }
 
-// ---- 7. 提示下一步 ----------------------------------------------------------
+// ---- 7. Next steps ----------------------------------------------------------
 
 const newReleaseUrl = `${REPO_URL}/releases/new?tag=v${newVer}&title=v${newVer}`;
 console.log('');
 console.log('═══════════════════════════════════════════════════════════');
-console.log(`  ✓ v${newVer} 已发布到 git，version.json 已生效`);
+console.log(`  ✓ v${newVer} is on git; version.json is in effect after push.`);
 console.log('═══════════════════════════════════════════════════════════');
 console.log('');
-console.log(`下一步（手工，约 1-2 分钟）：`);
-console.log(`  1. 打开浏览器：${newReleaseUrl}`);
-console.log(`  2. 把 release/ 目录里的 .exe / .zip / .dmg 等产物拖到上传区`);
-console.log(`  3. Release notes 复制 RELEASE-NOTES.md 顶部条目（也可以直接`);
-console.log(`     从 version.json 的 releaseNotes 字段复制简版）`);
-console.log(`  4. 点 "Publish release" 完事`);
+console.log('Next (manual, ~1–2 min):');
+console.log(`  1. Open: ${newReleaseUrl}`);
+console.log(`  2. Upload artifacts from release/ (.exe, .zip, .dmg, …)`);
+console.log(`  3. Paste release notes from RELEASE-NOTES.md or version.json`);
+console.log(`  4. Click “Publish release”`);
 console.log('');
-console.log(`客户端将在 5-10 分钟内（GitHub raw 缓存）感知到新版本，自动弹窗。`);
+console.log(`Clients may take 5–10 minutes (GitHub raw CDN) to see the new version.`);
 console.log('');
 
 if (process.platform === 'win32') {

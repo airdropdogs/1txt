@@ -154,16 +154,16 @@ export class NoteCell extends Component<Props> {
               (isOffline ? (
                 <span
                   className="note-list-item-pending-changes is-offline"
-                  title="当前同步失败，将在网络恢复时自动同步"
-                  aria-label="当前同步失败，将在网络恢复时自动同步"
+                  title="Sync pending; will retry when back online"
+                  aria-label="Sync pending; will retry when back online"
                 >
                   <WarningIcon />
                 </span>
               ) : (
                 <span
                   className="note-list-item-pending-changes"
-                  title="正在同步…"
-                  aria-label="正在同步"
+                  title="Syncing…"
+                  aria-label="Syncing"
                 >
                   <SmallSyncIcon />
                 </span>

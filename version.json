@@ -2,7 +2,7 @@
   "version": "1.0.1",
   "downloadPageUrl": "https://github.com/airdropdogs/1txt/releases/latest",
   "webAppUrl": "https://1txt.pkpkpk.com",
-  "releaseNotes": "首个公开发布版本：Vditor WYSIWYG 编辑器、Supabase 增量同步、OTP 邮箱登录、可拖拽侧栏。\n\n详见 RELEASE-NOTES.md。",
+  "releaseNotes": "First public build: Vditor WYSIWYG, Supabase diff sync, email OTP sign-in, resizable sidebar.\n\nSee RELEASE-NOTES.md.",
   "minSupportedVersion": "1.0.1",
   "force": false
 }

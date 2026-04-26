@@ -32,36 +32,21 @@ The diff-patch sync algorithm also reuses `jsondiff` / `change` utilities from [
 | Per-note status   | None                                 | "syncing" indicator on the active note + offline warning icon       |
 | Default new notes | Inherit from current note            | Markdown enabled by default for brand-new accounts                  |
 
-The diff-patch sync layer reuses the proven `jsondiff` / `change` algorithms from [`node-simperium`](https://github.com/Simperium/node-simperium) but pipes them through Supabase tables (`note_ghosts`, `note_changes`, `sync_cursors`). See [`docs/碎片同步分析.md`](docs/碎片同步分析.md) for the design write-up.
+The diff-patch sync layer reuses the proven `jsondiff` / `change` algorithms from [`node-simperium`](https://github.com/Simperium/node-simperium) but pipes them through Supabase tables (`note_ghosts`, `note_changes`, `sync_cursors`). See [`docs/tech-design.md`](docs/tech-design.md) for architecture and sync flow.
 
 ---
 
-## 为什么会有 1TXT — 作者的一段话
+## Why 1TXT
 
-> *A personal note from the author. English readers can safely skim past — the rest of the README is in English.*
+1TXT is a **minimal Markdown notebook** with live preview and **self-hosted Supabase sync**: small patches over the wire, OTP email sign-in, and a desktop shell inherited from Simplenote Electron.
 
-我在三个地方轮换办公：一个工作室、两个家。开工时桌面上一般同时挂着三个文档：一个在线文档、一个桌面笔记、还有一个 TXT。TXT 反而用得最多——它够轻，几百行、几千行扔进去都不卡。
+Trade-offs by design:
 
-可惜 TXT 没有同步。我试过市面上几乎所有的同步笔记软件，没有一个真正合心意：要么太重，要么按月收费太贵，要么多端经常互踢、登录麻烦，要么干脆没有 Markdown 所见即所得……
+- **~1 MB per note** (on the order of a million characters—enough for *The Count of Monte Cristo* and *A Tale of Two Cities* in plain text; not a media vault)
+- **Flat tag-based organization** (no nested folders in the UI)
+- **Text-first** (images and heavy embeds are out of scope)
 
-我要的其实只是一个**极简云文本**而已。
-
-找不到，那就自己改一个。1TXT 是我从开源的 Simplenote 改出来的，按我自己想要的样子重造：
-
-- **既是 Markdown 所见即所得编辑器，也是一块云端 TXT**——可以严肃做笔记，也可以纯当无限长的便签纸
-- **开源免费，承诺不收费**。如果哪天用户多到服务器扛不住，会在角落挂个 Google AdSense 维持——做得够轻，服务器成本本来也不高
-- **多端实时同步，不互踢**。三台机器同时挂着没问题，不会强制下线哪一端
-- **碎片化即时云同步**——每次输入只传变动的几个字节，不是整篇文档来回搬
-- **加密传输 + 双备份**——云端留历史版本，本地也存一份，文档不会丢
-- **Web 端全平台**——浏览器打开就能用，无需安装
-
-为这份"轻"，必然有取舍：
-
-- **单文档容量 1 MB**（约一百万字符——够写一部完整的《西游记》）
-- **没有文件夹**，扁平化是有意为之，用 tag 替代
-- **纯文本**，不内嵌图片、表格组件等富媒体
-
-如果这些痒处正好搔在你的位置上，欢迎试用。
+If that matches how you work, try the build from [Releases](https://github.com/airdropdogs/1txt/releases/latest) and wire up your own Supabase project with [`docs/schema.sql`](docs/schema.sql).
 
 ---
 
@@ -75,7 +60,7 @@ The diff-patch sync layer reuses the proven `jsondiff` / `change` algorithms fro
 ### 2. Set up the Supabase backend
 
 1. In your Supabase project, open **SQL Editor → New query**.
-2. Paste the contents of [`docs/schema.sql`](docs/schema.sql) and **Run**. This creates the three tables (`note_ghosts`, `note_changes`, `sync_cursors`), enables row-level security, and sets up a `pg_notify` trigger that powers Supabase Realtime.
+2. Paste the contents of [`docs/schema.sql`](docs/schema.sql) and **Run**. This creates the core tables (`note_ghosts`, `note_changes`, `sync_cursors`, `user_profiles`), enables row-level security, and adds `note_changes` to the Realtime publication for live patches.
 3. Open **Authentication → Providers → Email** and make sure **Email OTP** is enabled (it is on by default).
 4. Open **Settings → API** and copy:
    - **Project URL** → `SUPABASE_URL`
@@ -143,10 +128,14 @@ lib/state/simperium/reducer.ts
                        # per-note "syncing" indicator
 
 docs/
-  schema.sql                       # Run this in Supabase SQL Editor
-  碎片同步分析.md                  # Design doc for the diff-patch protocol
-  diagnose-sync.sql                # Quick health check (uses auth.uid())
-  问题与解决.md                    # Changelog of fixed issues
+  schema.sql                 # Run in Supabase SQL Editor
+  tech-design.md             # Architecture & diff-patch sync
+  diagnose-sync.sql          # Health check (uses auth.uid())
+  windows-packaging.md       # Windows ZIP + NSIS (EN)
+  安装版和解压版的生成.md    # Windows ZIP + NSIS (ZH)
+  versioning-and-updates.md  # Releases & updater (EN)
+  版本号与升级.md            # Releases & updater (ZH)
+  supabase-config.template.json  # Example API keys (copy to .env / config)
 ```
 
 ---

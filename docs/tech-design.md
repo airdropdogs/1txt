@@ -1,46 +1,46 @@
-# 1TXT 技术方案设计 (Tech Design & Architecture)
+# 1TXT — Technical design & architecture
 
-## 核心设计理念
+## Design principles
 
-- **UI 主线程隔离**：同步操作绝不阻塞编辑体验
-- **碎片 diff 传输**：只传最小差异补丁，不传完整文件
-- **Ghost 一致性模型**：复用 Simperium 的影子副本同步架构
-
----
-
-## 1. Auth 绕过与会话注入 (Phase 1) ✅ 已完成
-
-- `boot.ts` 不引入 AuthComponent，写入 Mock Token
-- 所有验证 UI 检测到 Token 后绿灯放行
-
-## 2. Redux 剥离与 IO 劫持 (Phase 2) ✅ 已完成
-
-- 剔除 Simperium 网络中间件
-- `NOTE_UPDATE` → `fs.writeFile` 实时落盘
-- 启动时 `fs.readdir` 扫描加载 .md
-
-## 3. Supabase 认证 (Phase 3) ✅ 已完成
-
-- OTP 无密码登录 (`signInWithOtp` + `verifyOtp`)
-- 自定义 SMTP (Resend)
-- Session 持久化 (localStorage)
+- **Never block the UI thread** on sync work.
+- **Diff-patch transport** — send minimal patches, not whole documents.
+- **Ghost consistency** — same mental model as Simperium’s ghost snapshot.
 
 ---
 
-## 4. 碎片同步架构 (Phase 4) — 当前阶段
+## 1. Auth bypass & session injection (Phase 1) — done
 
-### 4.1 整体架构
+- `boot.ts` skips `AuthComponent`, injects a mock token.
+- Auth UI treats the token as signed-in.
+
+## 2. Redux IO & local vault (Phase 2) — done
+
+- Simperium network middleware removed.
+- `NOTE_UPDATE` → `fs.writeFile` (immediate disk write).
+- Startup: `fs.readdir` loads `.md` files.
+
+## 3. Supabase auth (Phase 3) — done
+
+- Email OTP (`signInWithOtp` + `verifyOtp`).
+- Custom SMTP (e.g. Resend).
+- Session in `localStorage`.
+
+---
+
+## 4. Diff-patch sync (Phase 4) — current
+
+### 4.1 Architecture
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                      客户端                           │
+│                     Client                           │
 │                                                      │
-│  [编辑器] → NOTE_UPDATE → [VaultMiddleware]          │
+│  [Editor] → NOTE_UPDATE → [VaultMiddleware]          │
 │                              │                       │
 │                    ┌─────────┴─────────┐             │
 │                    │                   │             │
 │              [fs.writeFile]    [SyncChannel]         │
-│              (本地落盘)        │                     │
+│              (local disk)      │                     │
 │                         ┌──────┴──────┐              │
 │                   [LocalQueue]   [GhostStore]        │
 │                         │             │              │
@@ -48,146 +48,128 @@
 │                         │             │              │
 │                    ┌────┴────┐        │              │
 │                    │  patch  │   [localStorage]      │
-│                    └────┬────┘   (Ghost 缓存)        │
+│                    └────┬────┘   (ghost cache)       │
 │                         │                            │
 └─────────────────────────┼────────────────────────────┘
                           │
                     ┌─────┴─────┐
                     │  Supabase │
                     │  ┌───────┐│
-                    │  │ REST  ││ ← 上行: insert patch
+                    │  │ REST  ││ ← uplink: insert patch
                     │  ├───────┤│
-                    │  │Realtime││ ← 下行: 订阅新 patch
+                    │  │Realtime││ ← downlink: subscribe
                     │  ├───────┤│
                     │  │  DB   ││ ← note_ghosts + note_changes
                     │  └───────┘│
                     └───────────┘
 ```
 
-### 4.2 核心模块 (lib/sync/)
+### 4.2 Modules (`lib/sync/`)
 
 ```
 lib/sync/
-├── jsondiff.ts            ← Simperium jsondiff (100% 复用)
-│                            支持: 字符串 diff (d), 对象 diff (O),
-│                            列表 diff (L), 添加 (+), 删除 (-), 替换 (r)
-│
-├── diff-match-patch.ts    ← Google diff-match-patch (100% 复用)
-│                            字符串级别最小差异算法
-│
-├── change.ts              ← Simperium change utils (100% 复用)
+├── jsondiff.ts            ← Simperium jsondiff (reused)
+│                            string diff (d), object (O),
+│                            list (L), add (+), remove (-), replace (r)
+├── diff-match-patch.ts    ← Google diff-match-patch (reused)
+├── change.ts              ← Simperium change utils (reused)
 │                            buildChange(), diff(), apply(), transform()
-│                            仅改输出字段名映射 (5行)
-│
-├── operation.ts           ← Simperium operation (100% 复用)
-│
-├── ghost-store.ts         ← 新写: SupabaseGhostStore
-│                            接口: get/put/remove/getChangeVersion/setChangeVersion
-│                            实现: localStorage (一级缓存) + Supabase (持久化)
-│
-├── sync-channel.ts        ← 新写: SupabaseSyncChannel
-│                            替代 Simperium channel.js 的传输层
-│                            上行: supabase.from('note_changes').insert(patch)
-│                            下行: supabase.channel('sync').on('INSERT', ...)
-│
-├── local-queue.ts         ← Simperium LocalQueue (100% 复用)
-│                            自然压缩: 等 ACK 期间的编辑自动合并
-│                            仅改 emit('send') → supabase.insert() (3行)
-│
-└── index.ts               ← 入口
-                             startSync(userId) / stopSync() / getSyncStatus()
+├── operation.ts           ← Simperium operation (reused)
+├── ghost-store.ts         ← SupabaseGhostStore
+│                            get/put/remove/getChangeVersion/setChangeVersion
+│                            localStorage cache + Supabase persistence
+├── sync-channel.ts        ← SupabaseSyncChannel
+│                            uplink: insert into note_changes
+│                            downlink: Realtime INSERT subscription
+├── local-queue.ts         ← Simperium LocalQueue (reused)
+│                            coalesces edits while waiting for ACK
+└── index.ts               ← startSync(userId) / stopSync() / getSyncStatus()
 ```
 
-### 4.3 同步流程
+### 4.3 Flow
 
-#### 上行 (本地 → 服务器)
+#### Uplink (client → server)
 
 ```
-1. 用户编辑 → NOTE_UPDATE 触发
-2. SyncChannel.update(noteId, newData) 被调用
-3. GhostStore.get(noteId) 获取 ghost (上次同步时的快照)
-4. jsondiff.diff(ghost.data, newData) = patch (最小差异)
-5. 如果 patch 为空 (isEmptyChange) → 跳过
-6. patch 入 LocalQueue
-7. LocalQueue 检查:
-   - 如果有正在等待 ACK 的同笔记变更 → 排队等待
-   - 否则 → 基于当前 ghost 重新计算最终 diff → 发送
+1. Edit → NOTE_UPDATE
+2. SyncChannel.update(noteId, newData)
+3. GhostStore.get(noteId) → ghost snapshot
+4. jsondiff.diff(ghost.data, newData) → patch
+5. If empty → skip
+6. Enqueue in LocalQueue
+7. If another change is in flight for same note → wait; else send
 8. supabase.from('note_changes').insert({ patch, sv, ev, ccid })
-9. 收到 ACK → GhostStore.put(noteId, newVersion, newData)
-10. 处理队列中的下一个变更
+9. On ACK → GhostStore.put(noteId, newVersion, newData)
+10. Drain queue
 ```
 
-#### 下行 (服务器 → 本地)
+#### Downlink (server → client)
 
 ```
-1. Supabase Realtime 订阅 note_changes 表的 INSERT 事件
-2. 收到远端补丁 (来自其他设备)
-3. GhostStore.get(noteId) 获取本地 ghost
-4. 版本检查:
-   - ghost.version === patch.sv → 正常 apply
-   - ghost.version !== patch.sv → 请求正确版本的 ghost
-5. 检查本地是否有未同步的修改:
-   - 没有 → 直接 apply patch → 更新 ghost → 更新 UI
-   - 有 → OT Transform:
-     a. localDiff = diff(ghost.data, localData)
-     b. transformed = transform(localDiff, remotePatch, ghost.data)
-     c. 先 apply remotePatch → 更新 ghost
-     d. 如果 transformed 非空 → 重新排队发送
-6. emit('update', noteId, newData) → UI 更新
+1. Realtime: INSERT on note_changes
+2. Remote patch from another device
+3. GhostStore.get(noteId)
+4. Version check:
+   - ghost.version === patch.sv → apply
+   - else → fetch correct ghost
+5. If no local pending edits → apply patch → update ghost → UI
+6. If local pending → OT:
+   a. localDiff = diff(ghost.data, localData)
+   b. transformed = transform(localDiff, remotePatch, ghost.data)
+   c. apply remotePatch → update ghost
+   d. if transformed non-empty → re-queue uplink
+7. emit('update', noteId, newData)
 ```
 
-#### 首次同步 (新设备)
+#### First sync (new device)
 
 ```
-1. 检查本地是否有 Change Version (CV)
-2. 没有 CV → 全量索引:
-   a. 拉取 note_ghosts 表所有该用户的 ghost
-   b. 逐个写入本地 GhostStore + Vault 文件
-   c. 索引完成 → 保存 CV → 开始增量同步
-3. 有 CV → 增量同步:
-   a. 拉取 note_changes 中 created_at > CV 的补丁
-   b. 逐个 apply → 更新 ghost
-   c. 如果 CV 无效 (服务器返回错误) → 重新全量索引
+1. Read change version (CV) from local store
+2. No CV → full index:
+   a. Load all note_ghosts for user
+   b. Write ghosts + vault files
+   c. Save CV → incremental mode
+3. Has CV → incremental:
+   a. Fetch note_changes with created_at > CV
+   b. Apply each; refresh ghost
+   c. If CV invalid → full index again
 ```
 
-### 4.4 数据库设计
+### 4.4 Database
 
-详见 → [schema.sql](./schema.sql)
+See [`schema.sql`](./schema.sql).
 
-核心 3 张表:
+Core tables:
 
-- `note_ghosts`: 每个笔记的完整 JSON 快照 (最新版本)
-- `note_changes`: 碎片补丁链 (JSONDiff 输出)
-- `sync_cursors`: 每个用户的同步游标
+- `note_ghosts` — latest full JSON per note.
+- `note_changes` — patch chain (JSONDiff output).
+- `sync_cursors` — per-user sync cursor.
 
-### 4.5 冲突解决
+### 4.5 Conflicts
 
-采用 Simperium 的 OT (Operational Transform) 策略，100% 复用其实现:
+Operational transform as in Simperium (reused implementation):
 
 ```
-场景: 设备 A 和设备 B 同时编辑同一篇笔记
-
 Ghost v3: "Hello World"
 
-设备 A 修改为: "Hello Beautiful World" → patchA
-设备 B 修改为: "Hello World!" → patchB
+Device A: "Hello Beautiful World" → patchA
+Device B: "Hello World!" → patchB
 
-patchB 先到达服务器 → Ghost 更新为 v4: "Hello World!"
+patchB lands first → ghost v4: "Hello World!"
 
-设备 A 收到 patchB:
-1. apply(ghost_v3, patchB) = "Hello World!"  → 更新 ghost 到 v4
-2. transform(patchA, patchB, ghost_v3) = transformedPatchA
-3. apply("Hello World!", transformedPatchA) = "Hello Beautiful World!"
-4. 发送 transformedPatchA → Ghost 更新为 v5
+Device A receives patchB:
+1. apply(ghost_v3, patchB) → "Hello World!" (ghost v4)
+2. transform(patchA, patchB, ghost_v3) → transformedPatchA
+3. apply("Hello World!", transformedPatchA) → "Hello Beautiful World!"
+4. Send transformedPatchA → ghost v5
 
-最终结果: "Hello Beautiful World!" (两个修改都保留)
+Result: both edits preserved → "Hello Beautiful World!"
 ```
 
-### 4.6 版本历史
+### 4.6 Revision history
 
-复用 Simperium 的版本管理策略:
+Same policy as Simperium’s client:
 
-- 最近 60 个精确版本 (每次变更都记录)
-- 每 10 个版本 1 个归档快照，最多 100 个归档
-- 总覆盖: 最近 1,060 次变更
-- 数据库定期清理超出范围的旧 diff
+- ~60 precise revisions per note.
+- Archived snapshot every 10 revisions, up to ~100 archives.
+- ~1,060 changes covered before older diffs are pruned server-side.
