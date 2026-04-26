@@ -3,8 +3,6 @@
 > How version numbers, releases, user upgrades, and data migration are handled.  
 > The updater is **minimal**: check → dialog → open the download page in the browser. No silent download or silent install.
 
-> **中文:** [版本号与升级.md](./版本号与升级.md)
-
 ---
 
 ## Quick checklist (release in three steps)
@@ -309,4 +307,4 @@ Host the same JSON at `https://your-domain.example/version.json` and set `metada
 | `desktop/app.js` | Calls updater after launch |
 | `electron-builder.json` | Versioned artifact names |
 | `RELEASE-NOTES.md` | Human-readable changelog |
-| `docs/windows-packaging.md` (中文: `安装版和解压版的生成.md`) | Windows ZIP + NSIS details |
+| `docs/windows-packaging.md` | Windows ZIP + NSIS details |

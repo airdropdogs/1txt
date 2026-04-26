@@ -131,10 +131,8 @@ docs/
   schema.sql                 # Run in Supabase SQL Editor
   tech-design.md             # Architecture & diff-patch sync
   diagnose-sync.sql          # Health check (uses auth.uid())
-  windows-packaging.md       # Windows ZIP + NSIS (EN)
-  安装版和解压版的生成.md    # Windows ZIP + NSIS (ZH)
-  versioning-and-updates.md  # Releases & updater (EN)
-  版本号与升级.md            # Releases & updater (ZH)
+  windows-packaging.md       # Windows ZIP + NSIS
+  versioning-and-updates.md  # Releases & in-app updater
   supabase-config.template.json  # Example API keys (copy to .env / config)
 ```
 

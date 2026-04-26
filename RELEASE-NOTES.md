@@ -1,7 +1,7 @@
 # 1TXT — Release notes
 
 > Versions follow [Semantic Versioning 2.0](https://semver.org/) (`MAJOR.MINOR.PATCH`).  
-> Release checklist & updater: [`docs/versioning-and-updates.md`](docs/versioning-and-updates.md) · [中文版 `docs/版本号与升级.md`](docs/版本号与升级.md).
+> Release checklist & updater: [`docs/versioning-and-updates.md`](docs/versioning-and-updates.md).
 
 ---
 

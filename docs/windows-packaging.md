@@ -2,8 +2,6 @@
 
 > The 1TXT desktop app uses Electron and electron-builder. On Windows we ship **two formats** that can **coexist on the same machine**. The default config builds both in one run.
 
-> **中文:** [安装版和解压版的生成.md](./安装版和解压版的生成.md)
-
 ---
 
 ## 1. At a glance
@@ -178,4 +176,4 @@ No. They run as separate apps. Two windows, two accounts, or one account with re
 - Installer: `1TXT-Setup-1.0.0-x64.exe` — shortcuts, Start Menu, typical install.
 - ZIP: `1TXT-1.0.0-win-x64.zip` — no admin rights, USB, quick try-out.
 
-For release workflow and updater behavior, see [versioning-and-updates.md](./versioning-and-updates.md) (中文: [版本号与升级.md](./版本号与升级.md)).
+For release workflow and updater behavior, see [versioning-and-updates.md](./versioning-and-updates.md).
