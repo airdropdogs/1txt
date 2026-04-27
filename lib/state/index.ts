@@ -32,6 +32,7 @@ const KNOWN_SETTINGS_KEYS = [
   'sortReversed',
   'sortTagsAlpha',
   'sortType',
+  'showPreviewButton',
   'spellCheckEnabled',
   'theme',
 ] as const;
@@ -46,6 +47,7 @@ import searchFieldMiddleware from './ui/search-field-middleware';
 
 import { reducer as browser, middleware as browserMiddleware } from './browser';
 import data from './data/reducer';
+import quota from './quota/reducer';
 import settings from './settings/reducer';
 import simperium from './simperium/reducer';
 import ui from './ui/reducer';
@@ -55,6 +57,7 @@ import * as A from './action-types';
 const reducers = combineReducers<State, A.ActionType>({
   browser,
   data,
+  quota,
   settings,
   simperium,
   ui,
@@ -63,6 +66,7 @@ const reducers = combineReducers<State, A.ActionType>({
 export type State = {
   browser: ReturnType<typeof browser>;
   data: ReturnType<typeof data>;
+  quota: ReturnType<typeof quota>;
   settings: ReturnType<typeof settings>;
   simperium: ReturnType<typeof simperium>;
   ui: ReturnType<typeof ui>;
@@ -80,6 +84,12 @@ export const makeStore = (
       createStore<State, A.ActionType, {}, {}>(
         reducers,
         {
+          // `initialData` already carries `data` / `simperium` / `settings`,
+          // and as of the workspace-restore feature it may also carry a
+          // partial `ui` slice (`collection` + `openedNote`) so the user
+          // lands back in their last selected tag/note after a restart.
+          // Other `ui` sub-reducers receive `undefined` and fall back to
+          // their built-in initial state — that's the intended behavior.
           ...initialData,
           settings: {
             ...pick(initialData.settings, KNOWN_SETTINGS_KEYS),

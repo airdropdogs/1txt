@@ -5,7 +5,6 @@ import classNames from 'classnames';
 import PublishIcon from '../icons/published-small';
 import SmallPinnedIcon from '../icons/pinned-small';
 import SmallSyncIcon from '../icons/sync-small';
-import WarningIcon from '../icons/warning';
 import { decorateWith, makeFilterDecorator } from './decorators';
 import { getTerms } from '../utils/filter-notes';
 import { noteTitleAndPreview } from '../utils/note-utils';
@@ -28,9 +27,42 @@ type StateProps = {
   hasPendingChanges: boolean;
   isOffline: boolean;
   isOpened: boolean;
+  lastSyncedAt?: number;
   lastUpdated: number;
   note?: T.Note;
   searchQuery: string;
+};
+
+/**
+ * Build the tooltip shown when the user hovers the per-note "syncing"
+ * spinner. The spinner is the only sync indicator we show — users know
+ * something's off when it keeps spinning, and the tooltip explains why.
+ */
+const formatRelativeTime = (now: number, then: number): string => {
+  const delta = Math.max(0, now - then);
+  const seconds = Math.round(delta / 1000);
+  if (seconds < 60) return `${seconds || 1}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+};
+
+const buildSyncTooltip = (
+  isOffline: boolean,
+  lastSyncedAt?: number
+): string => {
+  const lastSyncFragment =
+    typeof lastSyncedAt === 'number'
+      ? `Last successful sync: ${formatRelativeTime(Date.now(), lastSyncedAt)}.`
+      : 'No successful sync yet.';
+
+  if (isOffline) {
+    return `Offline — your edits are saved locally and will sync as soon as the network returns. ${lastSyncFragment}`;
+  }
+  return `Syncing your changes… ${lastSyncFragment}`;
 };
 
 type DispatchProps = {
@@ -73,6 +105,7 @@ export class NoteCell extends Component<Props> {
       hasPendingChanges,
       isOffline,
       isOpened,
+      lastSyncedAt,
       lastUpdated,
       noteId,
       note,
@@ -151,23 +184,18 @@ export class NoteCell extends Component<Props> {
           </button>
           <div className="note-list-item-status-right">
             {hasPendingChanges &&
-              (isOffline ? (
-                <span
-                  className="note-list-item-pending-changes is-offline"
-                  title="Sync pending; will retry when back online"
-                  aria-label="Sync pending; will retry when back online"
-                >
-                  <WarningIcon />
-                </span>
-              ) : (
-                <span
-                  className="note-list-item-pending-changes"
-                  title="Syncing…"
-                  aria-label="Syncing"
-                >
-                  <SmallSyncIcon />
-                </span>
-              ))}
+              (() => {
+                const tooltip = buildSyncTooltip(isOffline, lastSyncedAt);
+                return (
+                  <span
+                    className="note-list-item-pending-changes"
+                    title={tooltip}
+                    aria-label={tooltip}
+                  >
+                    <SmallSyncIcon />
+                  </span>
+                );
+              })()}
             {isPublished && (
               <span className="note-list-item-published-icon">
                 <PublishIcon />
@@ -188,6 +216,7 @@ const mapStateToProps: S.MapState<StateProps, OwnProps> = (
   hasPendingChanges: selectors.noteHasPendingChanges(state, noteId),
   isOffline: state.simperium.connectionStatus === 'offline',
   isOpened: state.ui.openedNote === noteId,
+  lastSyncedAt: state.simperium.lastSync.get(noteId),
   lastUpdated: state.simperium.lastRemoteUpdate.get(noteId) ?? -Infinity,
   note: state.data.notes.get(noteId),
   searchQuery: state.ui.searchQuery,

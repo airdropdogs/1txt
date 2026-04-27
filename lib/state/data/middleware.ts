@@ -92,12 +92,6 @@ export const middleware: S.Middleware =
           noteId: state.ui.openedNote,
         });
 
-      case 'TOGGLE_ANALYTICS':
-        return next({
-          type: 'SET_ANALYTICS',
-          allowAnalytics: !state.data.analyticsAllowed,
-        });
-
       case 'TRASH_OPEN_NOTE':
         if (!state.ui.openedNote) {
           return;

@@ -15,19 +15,25 @@ import * as S from '../state';
 import * as T from '../types';
 
 type StateProps = {
+  editorViewMode: 'source' | 'wysiwyg' | 'preview';
   hasRevisions: boolean;
   isMarkdown: boolean;
   isPinned: boolean;
   noteId: T.EntityId;
   note: T.Note;
+  showPreviewButton: boolean;
 };
 
 type DispatchProps = {
+  closeNoteActions: () => any;
   markdownNote: (noteId: T.EntityId, shouldEnableMarkdown: boolean) => any;
   onFocusTrapDeactivate: () => any;
   pinNote: (noteId: T.EntityId, shouldPin: boolean) => any;
   publishNote: (noteId: T.EntityId, shouldPublish: boolean) => any;
+  setViewMode: (mode: 'source' | 'wysiwyg' | 'preview') => any;
   shareNote: () => any;
+  showNoteInfo: () => any;
+  togglePreviewButton: () => any;
   toggleRevisions: () => any;
   trashNote: () => any;
 };
@@ -65,8 +71,39 @@ export class NoteActions extends Component<Props> {
     return isEmpty(url) ? null : `http://simp.ly/p/${url}`;
   };
 
+  // Toggling the "Show preview button" off while the user is *currently*
+  // in preview mode would leave them stranded with no UI to switch back
+  // (the eye button would disappear). Hand them off to WYSIWYG first, then
+  // flip the setting.
+  handleTogglePreviewButton = () => {
+    const {
+      editorViewMode,
+      setViewMode,
+      showPreviewButton,
+      togglePreviewButton,
+    } = this.props;
+    if (showPreviewButton && editorViewMode === 'preview') {
+      setViewMode('wysiwyg');
+    }
+    togglePreviewButton();
+  };
+
+  // Close the actions popover before opening the Note info modal so the
+  // user only sees one panel at a time.
+  handleShowNoteInfo = () => {
+    this.props.closeNoteActions();
+    this.props.showNoteInfo();
+  };
+
   render() {
-    const { hasRevisions, isMarkdown, isPinned, noteId, note } = this.props;
+    const {
+      hasRevisions,
+      isMarkdown,
+      isPinned,
+      noteId,
+      note,
+      showPreviewButton,
+    } = this.props;
     const isPublished = includes(note.systemTags, 'published');
     const publishURL = this.getPublishURL(note.publishURL);
     const noteLink = this.getNoteLink(note, noteId);
@@ -118,12 +155,38 @@ export class NoteActions extends Component<Props> {
               </span>
             </label>
 
+            <label
+              className="note-actions-item"
+              htmlFor="note-actions-preview-button-checkbox"
+            >
+              <span className="note-actions-item-text">
+                <span className="note-actions-name">Show preview button</span>
+              </span>
+              <span className="note-actions-item-control">
+                <CheckboxControl
+                  id="note-actions-preview-button-checkbox"
+                  checked={showPreviewButton}
+                  isStandard
+                  onChange={this.handleTogglePreviewButton}
+                />
+              </span>
+            </label>
+
             <div className="note-actions-item note-actions-internal-link">
               <ClipboardButton
                 container={this.containerRef}
                 text={noteLink}
                 linkText="Copy Internal Link"
               />
+            </div>
+
+            <div className="note-actions-item">
+              <button
+                className="button button-borderless"
+                onClick={this.handleShowNoteInfo}
+              >
+                Note info…
+              </button>
             </div>
 
             {hasRevisions && (
@@ -221,25 +284,35 @@ export class NoteActions extends Component<Props> {
 
 const mapStateToProps: S.MapState<StateProps> = ({
   data,
-  ui: { openedNote },
+  settings,
+  ui: { editorViewMode, openedNote },
 }) => {
   const note = data.notes.get(openedNote);
 
   return {
+    editorViewMode,
     noteId: openedNote,
     note: note,
     hasRevisions: !!data.noteRevisions.get(openedNote)?.size,
     isMarkdown: note?.systemTags.includes('markdown'),
     isPinned: note?.systemTags.includes('pinned'),
+    showPreviewButton: !!settings.showPreviewButton,
   };
 };
 
 const mapDispatchToProps: S.MapDispatch<DispatchProps> = {
+  closeNoteActions: actions.ui.closeNoteActions,
   markdownNote: actions.data.markdownNote,
   onFocusTrapDeactivate: actions.ui.closeNoteActions,
   pinNote: actions.data.pinNote,
   publishNote: actions.data.publishNote,
+  setViewMode: (mode: 'source' | 'wysiwyg' | 'preview') => ({
+    type: 'SET_EDITOR_VIEW_MODE' as const,
+    mode,
+  }),
   shareNote: () => actions.ui.showDialog('SHARE'),
+  showNoteInfo: actions.ui.toggleNoteInfo,
+  togglePreviewButton: actions.settings.togglePreviewButton,
   toggleRevisions: actions.ui.toggleRevisions,
   trashNote: actions.ui.trashOpenNote,
 };

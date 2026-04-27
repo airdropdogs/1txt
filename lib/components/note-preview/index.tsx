@@ -161,6 +161,45 @@ export const NotePreview: FunctionComponent<Props> = ({
     }
   }, [note?.content, searchQuery, showRenderedView]);
 
+  // ───────────────────────────────────────────────────────────────────────
+  // Theme-switch hard refresh.
+  //
+  // Reported symptom: after switching the app theme (light ⇄ dark),
+  // syntax-highlighted code blocks in the preview keep their old
+  // colors / background until the user manually opens a different note,
+  // which forces a re-render.
+  //
+  // Root cause: highlight.js mutates the DOM in-place (it sets
+  // <code class="hljs language-…"> and replaces innerHTML with token
+  // <span> elements). Some browsers (and our solarized base16 hljs CSS,
+  // which sets `background` on `.hljs` itself) don't always re-paint the
+  // already-mounted spans cleanly when the cascading parent selector
+  // (`body[data-theme=…]`) changes — most often the `.hljs` background
+  // sticks until the subtree is rebuilt.
+  //
+  // Cheapest reliable fix: observe `body[data-theme]` and, on change,
+  // re-run renderToNode. That tears down the highlighted DOM and rebuilds
+  // it from the source markdown, picking up the new theme's hljs colors.
+  // ───────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (typeof MutationObserver === 'undefined') return;
+    const observer = new MutationObserver((mutations) => {
+      const themeChanged = mutations.some(
+        (m) => m.type === 'attributes' && m.attributeName === 'data-theme'
+      );
+      if (!themeChanged) return;
+      if (!previewNode.current) return;
+      if (note?.content && showRenderedView) {
+        renderToNode(previewNode.current, note.content, searchQuery);
+      }
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+    return () => observer.disconnect();
+  }, [note?.content, searchQuery, showRenderedView]);
+
   return (
     <div className="note-detail-wrapper">
       <div className="note-detail note-detail-preview">

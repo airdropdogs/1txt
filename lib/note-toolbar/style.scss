@@ -125,11 +125,130 @@
   display: block;
 }
 
-/* 3-button mode switcher (Source / WYSIWYG / Preview) */
+/* "Insert Markdown" dropdown */
+.insert-menu {
+  // The wrapping div is a positioning anchor for react-overlays' popper.
+  // Keep it inline-block so the IconButton inside lays out the same way the
+  // old standalone Checklist button did.
+  display: inline-block;
+}
+
+.insert-menu__popover {
+  z-index: 1300;
+  margin-top: 6px;
+  min-width: 220px;
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--background-color);
+  border: 1px solid var(--secondary-color);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  padding: 6px 0;
+}
+
+.insert-menu__item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--foreground-color);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: left;
+  line-height: 1.25;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+    outline: none;
+  }
+}
+
+.insert-menu__item-preview {
+  flex: 0 0 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-right: 12px;
+  color: var(--foreground-color);
+  font-size: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.insert-menu__item-caption {
+  flex: 1 1 auto;
+  color: var(--secondary-color, #586069);
+  font-size: 12px;
+}
+
+// Per-snippet preview styles. Sized intentionally smaller than the editor
+// so previews fit on a single ~28px row.
+.insert-menu__preview-h1 {
+  font-size: 18px;
+  font-weight: 700;
+}
+.insert-menu__preview-h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.insert-menu__preview-h3 {
+  font-size: 14px;
+  font-weight: 700;
+}
+.insert-menu__preview-quote {
+  border-left: 3px solid var(--secondary-color);
+  padding-left: 8px;
+  font-style: italic;
+  opacity: 0.85;
+}
+.insert-menu__preview-list {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.insert-menu__preview-code,
+.insert-menu__preview-codeblock code {
+  background: var(--readonly-input-color, rgba(0, 0, 0, 0.06));
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.insert-menu__preview-link {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+.insert-menu__preview-hr {
+  display: inline-block;
+  width: 80px;
+  border-top: 1px solid var(--secondary-color);
+}
+
+/* Style the IconButton inside the insert-menu trigger so it aligns the same
+   way as the surrounding toolbar buttons. */
+.insert-menu .icon-insert-markdown {
+  width: 22px;
+  height: 22px;
+}
+
+/* 3-button mode switcher (Source / WYSIWYG / Preview)
+ *
+ * Theme notes (why we use these specific tokens):
+ *  - --foreground-color: medium-gray in light (#646970), light-gray in dark
+ *    (#8c8f94) — readable on both backgrounds.
+ *  - --secondary-color is intentionally NOT used for the inactive label
+ *    color: in dark theme it is #2c3338, which is essentially invisible
+ *    on the #1d2327 background. We do still use it for the border / divider,
+ *    where low contrast is desirable.
+ *  - Hover overlay is split per theme so it's visible against both bg colors.
+ */
 .note-toolbar__mode-switcher {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--border-color, #d1d5da);
+  border: 1px solid var(--secondary-color);
   border-radius: 4px;
   overflow: hidden;
   margin-right: 4px;
@@ -140,18 +259,19 @@
     padding: 4px 10px;
     font-size: 13px;
     cursor: pointer;
-    color: var(--secondary-color, #586069);
+    color: var(--foreground-color);
     line-height: 1;
     transition:
       background 0.15s,
       color 0.15s;
 
     &:not(:last-child) {
-      border-right: 1px solid var(--border-color, #d1d5da);
+      border-right: 1px solid var(--secondary-color);
     }
 
     &:hover {
-      background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+      background: rgba(0, 0, 0, 0.06);
+      color: var(--primary-color);
     }
 
     &.active {
@@ -159,4 +279,8 @@
       color: #fff;
     }
   }
+}
+
+body[data-theme='dark'] .note-toolbar__mode-switcher .mode-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
 }

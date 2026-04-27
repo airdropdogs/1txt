@@ -60,6 +60,12 @@ export const toggleSpellCheck: A.ActionCreator<A.ToggleSpellcheck> = () => ({
   type: 'TOGGLE_SPELLCHECK',
 });
 
+export const togglePreviewButton: A.ActionCreator<
+  A.TogglePreviewButton
+> = () => ({
+  type: 'TOGGLE_PREVIEW_BUTTON',
+});
+
 export const toggleAutoHideMenuBar: A.ActionCreator<
   A.ToggleAutoHideMenuBar
 > = () => ({

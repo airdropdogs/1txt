@@ -207,27 +207,6 @@ export const initSimperium =
     });
 
     const preferencesBucket = client.bucket('preferences');
-    preferencesBucket.channel.on('update', (entityId, updatedEntity) => {
-      if ('preferences-key' !== entityId) {
-        return;
-      }
-
-      if (
-        !!updatedEntity.analytics_enabled !== getState().data.analyticsAllowed
-      ) {
-        dispatch({
-          type: 'REMOTE_ANALYTICS_UPDATE',
-          allowAnalytics: !!updatedEntity.analytics_enabled,
-        });
-      }
-    });
-    preferencesBucket.channel.once('ready', async () => {
-      const preferences = await preferencesBucket.get('preferences-key');
-      dispatch({
-        type: 'REMOTE_ANALYTICS_UPDATE',
-        allowAnalytics: !!preferences?.data?.analytics_enabled,
-      });
-    });
 
     const noteQueue = new BucketQueue(noteBucket);
     const queueNoteUpdate = (noteId: T.EntityId, delay = 2000) =>
@@ -411,10 +390,6 @@ export const initSimperium =
           nextState.data.tags.forEach((tag, tagHash) => {
             queueTagUpdate(tagHash);
           });
-          return result;
-
-        case 'SET_ANALYTICS':
-          queuePreferencesUpdate('preferences-key' as T.EntityId);
           return result;
 
         case 'TRASH_TAG': {

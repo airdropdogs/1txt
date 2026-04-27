@@ -34,6 +34,7 @@ type StateProps = {
 
 type DispatchProps = {
   addTag: (noteId: T.EntityId, tagName: T.TagName) => any;
+  openTag: (tagName: T.TagName) => any;
   removeTag: (noteId: T.EntityId, tagName: T.TagName) => any;
 };
 
@@ -179,17 +180,30 @@ export class TagField extends Component<Props, OwnState> {
       selectedTag: this.props.note?.tags.slice(-1).shift() as T.TagName,
     });
 
-  selectTag = (event: React.MouseEvent<HTMLDivElement>) => {
+  // Clicking a tag chip's body now means "jump to this tag" (i.e. switch the
+  // sidebar collection to that tag, mirroring sidebar tag clicks). The actual
+  // removal moved to the explicit × button on the chip.
+  jumpToTag = (event: React.MouseEvent<HTMLDivElement>) => {
     const {
       currentTarget: {
         dataset: { tagName },
       },
     } = event;
 
+    if (!tagName) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
-    this.deleteTag(tagName as T.TagName);
+    this.props.openTag(tagName as T.TagName);
+  };
+
+  // Invoked by TagChip's × button. The chip already stops propagation on its
+  // own click handler so we don't receive a phantom jumpToTag call.
+  removeTagChip = (tagName: T.TagName) => {
+    this.deleteTag(tagName);
   };
 
   showEmailTooltip = () => {
@@ -245,7 +259,7 @@ export class TagField extends Component<Props, OwnState> {
     return (
       <div ref={this.container} className="tag-field">
         <div
-          aria-label="List of tags for the current note, click a tag to remove it"
+          aria-label="Tags for the current note. Click a tag to filter the list by it, click × to remove."
           className={classNames('tag-editor', {
             'has-selection': this.hasSelection(),
           })}
@@ -263,7 +277,8 @@ export class TagField extends Component<Props, OwnState> {
               key={tagName}
               tagName={tagName}
               selected={tagName === selectedTag}
-              onSelect={this.selectTag}
+              onSelect={this.jumpToTag}
+              onRemove={this.removeTagChip}
             />
           ))}
           <TagInput
@@ -308,6 +323,10 @@ export default connect(mapStateToProps, {
   addTag: (noteId, tagName) => ({
     type: 'ADD_NOTE_TAG',
     noteId,
+    tagName,
+  }),
+  openTag: (tagName) => ({
+    type: 'OPEN_TAG',
     tagName,
   }),
   removeTag: (noteId, tagName) => ({

@@ -24,10 +24,10 @@ export const ConnectionStatus: FunctionComponent<Props> = ({
       classes={{ tooltip: 'icon-button__tooltip' }}
       title={
         connectionStatus === 'green'
-          ? 'Simplenote is communicating with the server.'
+          ? '1TXT is connected and syncing with the server.'
           : connectionStatus === 'offline'
-            ? "Simplenote is operating in offline mode and changes won't be synchronized with the server until it connects again."
-            : "Simplenote hasn't communicated with the server in a while; changes may not be synchronized with the server until the connection improves."
+            ? "You're offline. Edits are saved locally and will upload automatically once the network is back."
+            : "1TXT hasn't reached the server in a while. Your edits are safe locally and will sync as soon as the connection recovers."
       }
     >
       <p>

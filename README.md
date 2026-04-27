@@ -42,7 +42,8 @@ The diff-patch sync layer reuses the proven `jsondiff` / `change` algorithms fro
 
 Trade-offs by design:
 
-- **~1 MB per note** (on the order of a million characters—enough for *The Count of Monte Cristo* and *A Tale of Two Cities* in plain text; not a media vault)
+- **1 MiB cloud quota per user** (live note text only; version history is free, see [`docs/quota-and-history.md`](docs/quota-and-history.md))
+- **Automatic version history** with Simplenote-style time bucketing (today: all / 1–7d: daily / 7–30d: weekly / >30d: deleted)
 - **Flat tag-based organization** (no nested folders in the UI)
 - **Text-first** (images and heavy embeds are out of scope)
 
@@ -60,7 +61,7 @@ If that matches how you work, try the build from [Releases](https://github.com/a
 ### 2. Set up the Supabase backend
 
 1. In your Supabase project, open **SQL Editor → New query**.
-2. Paste the contents of [`docs/schema.sql`](docs/schema.sql) and **Run**. This creates the core tables (`note_ghosts`, `note_changes`, `sync_cursors`, `user_profiles`), enables row-level security, and adds `note_changes` to the Realtime publication for live patches.
+2. Paste the contents of [`docs/schema.sql`](docs/schema.sql) and **Run**. This creates the core tables (`note_ghosts`, `note_changes`, `note_revisions`, `sync_cursors`, `user_profiles`), enables row-level security, the 1 MiB per-user quota triggers, and adds `note_changes` to the Realtime publication for live patches. Existing v3 deployments should run [`docs/migrate-v3-to-v3.1.sql`](docs/migrate-v3-to-v3.1.sql) instead.
 3. Open **Authentication → Providers → Email** and make sure **Email OTP** is enabled (it is on by default).
 4. Open **Settings → API** and copy:
    - **Project URL** → `SUPABASE_URL`

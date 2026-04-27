@@ -213,13 +213,6 @@
     & svg {
       animation: 2s spin infinite linear;
     }
-
-    &.is-offline svg {
-      animation: none;
-      width: 14px;
-      height: 14px;
-      fill: var(--warning-highlight-color);
-    }
   }
 
   .note-list-item-title {

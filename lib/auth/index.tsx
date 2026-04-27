@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import classNames from 'classnames';
-import SimplenoteLogo from '../icons/simplenote';
 import Spinner from '../components/spinner';
 import { isElectron, isMac } from '../utils/platform';
 
@@ -106,7 +105,6 @@ export class Auth extends Component<Props> {
           {isElectron && isMac && <div className="login__draggable-area" />}
           <div className="account-requested">
             <form className="login__form" onSubmit={this.onSubmitCode}>
-              <SimplenoteLogo />
               <h1>Enter Code</h1>
               <p className="account-requested__message">
                 We&apos;ve sent a code to{' '}
@@ -152,7 +150,6 @@ export class Auth extends Component<Props> {
     return (
       <div className={mainClasses}>
         {isElectron && isMac && <div className="login__draggable-area" />}
-        <SimplenoteLogo />
         <form className="login__form" onSubmit={this.onSubmitEmail}>
           <h1>1TXT</h1>
           {!this.state.onLine && (

@@ -124,6 +124,19 @@ const sortType: A.Reducer<T.SortType> = (
       return state;
   }
 };
+
+// Whether the small "👁 Preview" button shows up in the per-note toolbar's
+// mode switcher. Hidden by default to keep the toolbar minimal — power users
+// who want a render-only preview can switch it on from Note Actions.
+const showPreviewButton: A.Reducer<boolean> = (state = false, action) => {
+  switch (action.type) {
+    case 'TOGGLE_PREVIEW_BUTTON':
+      return !state;
+    default:
+      return state;
+  }
+};
+
 const spellCheckEnabled: A.Reducer<boolean> = (state = true, action) => {
   switch (action.type) {
     case 'setSpellCheck':
@@ -156,6 +169,7 @@ export default combineReducers({
   sortReversed,
   sortTagsAlpha,
   sortType,
+  showPreviewButton,
   spellCheckEnabled,
   theme,
 });

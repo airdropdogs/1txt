@@ -19,6 +19,17 @@ import { v4 as uuid } from 'uuid';
 
 export type SyncStatus = 'idle' | 'syncing' | 'offline' | 'indexing';
 
+export interface SyncChannelOptions {
+  /**
+   * Optional callback to read the latest local note data straight from
+   * the host store (e.g. Redux). Used during conflict resolution when a
+   * remote change arrives while we still have an unACK'd local edit
+   * sitting in the LocalQueue's `sent` slot — the queue itself only
+   * keeps the in-flight Change, not the post-edit object.
+   */
+  getLocalNoteData?: (noteId: string) => Record<string, any> | undefined;
+}
+
 export class SupabaseSyncChannel extends EventEmitter {
   private supabase: SupabaseClient;
   private userId: string;
@@ -28,19 +39,44 @@ export class SupabaseSyncChannel extends EventEmitter {
   private realtimeChannel: RealtimeChannel | null = null;
   private status: SyncStatus = 'idle';
   private isIndexing = false;
+  private getLocalNoteData?: (
+    noteId: string
+  ) => Record<string, any> | undefined;
 
-  constructor(supabase: SupabaseClient, userId: string) {
+  constructor(
+    supabase: SupabaseClient,
+    userId: string,
+    options: SyncChannelOptions = {}
+  ) {
     super();
     this.supabase = supabase;
     this.userId = userId;
     this.clientId = `1txt-${uuid().slice(0, 8)}`;
     this.store = new SupabaseGhostStore(supabase, userId);
     this.localQueue = new LocalQueue(this.store);
+    this.getLocalNoteData = options.getLocalNoteData;
 
     // When LocalQueue emits 'send', push to Supabase
     this.localQueue.on('send', (ch: Change) => {
       this.sendChange(ch);
     });
+  }
+
+  /**
+   * Re-attempt sending any locally queued / unACK'd changes.
+   *
+   * Call this after the network comes back online or after the Realtime
+   * channel reconnects. Mirrors Simperium's `resendSentChanges()` plus a
+   * sweep of any compressed-but-blocked queue entries.
+   */
+  flushPending(): void {
+    if (!this.localQueue.ready) {
+      this.localQueue.start();
+    }
+    this.localQueue.resendSentChanges();
+    for (const id in this.localQueue.queues) {
+      this.localQueue.processQueue(id);
+    }
   }
 
   /**
@@ -171,11 +207,48 @@ export class SupabaseSyncChannel extends EventEmitter {
     return this.localQueue.hasLocalChanges();
   }
 
+  /**
+   * Per-note: is anything still queued or in flight for this note?
+   * Used by the middleware to decide whether to clear the per-note
+   * "pending" icon on ACK — we only clear when the last in-flight
+   * change for the note has been acknowledged.
+   */
+  hasPendingForNote(noteId: string): boolean {
+    return (
+      !!this.localQueue.sent[noteId] ||
+      (this.localQueue.queues[noteId]?.length ?? 0) > 0
+    );
+  }
+
   // ─── Private Methods ─────────────────────────────────────
 
   private setStatus(status: SyncStatus): void {
     this.status = status;
     this.emit('status', status);
+  }
+
+  /**
+   * Pull a single note's authoritative ghost from Supabase and overwrite
+   * our local copy. Used after we discover our local sv has drifted
+   * (e.g. a 23505 duplicate-key on resend means the server already
+   * applied a change we have no record of). Also emits `update` so the
+   * UI/store re-syncs to the canonical content.
+   */
+  private async refreshGhostFromServer(noteId: string): Promise<void> {
+    const { data, error } = await this.supabase
+      .from('note_ghosts')
+      .select('version, data')
+      .eq('user_id', this.userId)
+      .eq('note_id', noteId)
+      .maybeSingle();
+
+    if (error || !data) return;
+
+    const local = await this.store.get(noteId);
+    if (data.version <= local.version) return;
+
+    await this.store.put(noteId, data.version, data.data);
+    this.emit('update', noteId, data.data, local.data, {}, this.isIndexing);
   }
 
   /**
@@ -283,7 +356,16 @@ export class SupabaseSyncChannel extends EventEmitter {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          const wasOffline = this.status === 'offline';
           console.log('[SyncChannel] Realtime connected');
+          if (wasOffline) {
+            // We were offline and just came back — push out anything that
+            // accumulated locally before the network gave up on us.
+            this.flushPending();
+          }
+          this.setStatus(
+            this.localQueue.hasLocalChanges() ? 'syncing' : 'idle'
+          );
         } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
           console.warn('[SyncChannel] Realtime disconnected, will retry');
           this.setStatus('offline');
@@ -343,50 +425,80 @@ export class SupabaseSyncChannel extends EventEmitter {
     const modified = change.apply(patch, original);
     const newVersion = remoteChange.ev || ghost.version + 1;
 
-    // Check if we have local unsent changes for this note
-    const hasPendingLocal = this.localQueue.queues[noteId]?.length > 0;
+    // Detect ALL pending local work — not just the queued (waiting) entries
+    // but also the sent-but-not-yet-ACK'd one in `sent[]`. The original
+    // version of this check only looked at `queues[]`, which meant offline
+    // edits that had already been "sent" (and silently failed) were
+    // overwritten by remote changes when the network came back.
+    const queueEntries = this.localQueue.queues[noteId];
+    const sentChange = this.localQueue.sent[noteId];
+    const hasPendingLocal = (queueEntries?.length ?? 0) > 0 || !!sentChange;
 
     if (!hasPendingLocal) {
       // No conflict: just apply and update ghost
       await this.store.put(noteId, newVersion, modified);
       this.emit('update', noteId, modified, original, patch, this.isIndexing);
-    } else {
-      // Conflict! Use OT transform (rebase local changes on top of remote)
-      // This is the core of Simperium's conflict resolution
-
-      // Get local unsent data (the latest queued state)
-      const localEntry =
-        this.localQueue.queues[noteId]?.[
-          this.localQueue.queues[noteId].length - 1
-        ];
-      const localData = localEntry?.object || original;
-
-      // Compute local modifications
-      const localMods = change.diff(original, localData);
-
-      // Transform (rebase) local mods on top of remote patch
-      const transformed = change.transform(localMods, patch, original);
-
-      // Dequeue old changes
-      this.localQueue.dequeueChangesFor(noteId);
-
-      // Apply remote patch first → update ghost
-      await this.store.put(noteId, newVersion, modified);
-
-      let update = modified;
-
-      // If transform produced changes, re-queue them
-      if (transformed && Object.keys(transformed).length > 0) {
-        update = change.apply(transformed, modified);
-        this.localQueue.queue({
-          type: 'modify',
-          id: noteId,
-          object: update,
-        });
-      }
-
-      this.emit('update', noteId, update, original, patch, this.isIndexing);
+      return;
     }
+
+    // Conflict! Use OT transform (rebase local changes on top of remote)
+    // This is the core of Simperium's conflict resolution.
+    //
+    // The "local" snapshot we want to preserve is, in priority order:
+    //   1. The most recent queued entry's full object (latest user state)
+    //   2. The Redux-side snapshot (still authoritative if only `sent` exists)
+    //   3. The patch carried in `sent` re-applied on top of `original`
+    //   4. Worst case, fall back to the ghost itself
+    let localData: Record<string, any> = original;
+    const lastQueueEntry = queueEntries?.[queueEntries.length - 1];
+    if (lastQueueEntry?.object) {
+      localData = lastQueueEntry.object;
+    } else if (this.getLocalNoteData) {
+      const fromHost = this.getLocalNoteData(noteId);
+      if (fromHost) {
+        localData = fromHost;
+      }
+    }
+    if (localData === original && sentChange?.v) {
+      try {
+        localData = change.apply(sentChange.v, original) || original;
+      } catch (e) {
+        console.warn(
+          '[SyncChannel] Could not re-apply in-flight patch, falling back to ghost:',
+          e
+        );
+      }
+    }
+
+    // Compute local modifications relative to the pre-remote ghost
+    const localMods = change.diff(original, localData);
+
+    // Transform (rebase) local mods on top of remote patch
+    const transformed =
+      localMods && Object.keys(localMods).length > 0
+        ? change.transform(localMods, patch, original)
+        : null;
+
+    // Dequeue old changes (drops both `sent[id]` and `queues[id]`)
+    this.localQueue.dequeueChangesFor(noteId);
+
+    // Apply remote patch first → update ghost
+    await this.store.put(noteId, newVersion, modified);
+
+    let update = modified;
+
+    // If transform produced changes, re-queue them so the local edits
+    // survive the merge and get retried on the next send opportunity.
+    if (transformed && Object.keys(transformed).length > 0) {
+      update = change.apply(transformed, modified) || modified;
+      this.localQueue.queue({
+        type: 'modify',
+        id: noteId,
+        object: update,
+      });
+    }
+
+    this.emit('update', noteId, update, original, patch, this.isIndexing);
   }
 
   /**
@@ -413,13 +525,49 @@ export class SupabaseSyncChannel extends EventEmitter {
       if (error) {
         // Handle specific error codes (matching Simperium's error handling)
         if (error.code === '23505') {
-          // Duplicate change (unique constraint on ccid) — already synced
+          // Duplicate change (unique constraint on ccid). This means the
+          // request actually succeeded earlier but we lost the response —
+          // typical when the network blipped right after the insert. The
+          // server already applied this change; we just never advanced
+          // our local ghost, so any *future* change for this note would
+          // also fail with sv mismatch unless we sync the ghost first.
+          await this.refreshGhostFromServer(ch.id).catch((e) =>
+            console.warn(
+              '[SyncChannel] Could not resync ghost after 23505 for',
+              ch.id,
+              e
+            )
+          );
           this.localQueue.acknowledge(ch);
-        } else {
-          console.error('[SyncChannel] Failed to send change:', error);
-          // Will be retried on next resendSentChanges()
+          this.emit('acknowledge', ch.id, ch);
+          this.setStatus(
+            this.localQueue.hasLocalChanges() ? 'syncing' : 'idle'
+          );
+          return;
         }
-        this.setStatus('idle');
+        // Quota exhausted on the server (note_ghosts trigger raises
+        // SQLSTATE 53100). The server WILL keep refusing this change
+        // until the user frees up space, so we must drop it from the
+        // queue — otherwise we'd retry-spin forever and burn battery.
+        // Local edits are still safe in IndexedDB; the upload simply
+        // resumes once SET_QUOTA reports headroom again.
+        if (
+          error.code === '53100' ||
+          /quota_exceeded/i.test(error.message ?? '')
+        ) {
+          console.warn(
+            '[SyncChannel] Quota exceeded — pausing uploads for',
+            ch.id
+          );
+          this.emit('quota-exceeded', ch.id, error);
+          this.localQueue.acknowledge(ch);
+          this.setStatus('idle');
+          return;
+        }
+        // Other errors → leave the change in `sent[]` so flushPending()
+        // (called on online / Realtime reconnect) can retry it later.
+        console.error('[SyncChannel] Failed to send change:', error);
+        this.setStatus('offline');
         return;
       }
 
@@ -427,23 +575,48 @@ export class SupabaseSyncChannel extends EventEmitter {
       const newVersion = (ch.sv || ghost.version) + 1;
 
       // For modify: compute new data from patch
+      let revisionData: Record<string, any> | null = null;
       if (ch.o === 'M' && ch.v) {
         const newData = change.apply(ch.v, ghost.data);
         await this.store.put(ch.id, newVersion, newData);
 
-        // Also update the ghost on the server
-        await this.supabase.from('note_ghosts').upsert(
-          {
-            user_id: this.userId,
-            note_id: ch.id,
-            version: newVersion,
-            data: newData,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'user_id,note_id',
+        // Also update the ghost on the server. If this fails with quota
+        // (53100) the upsert returns an error rather than throwing, so
+        // we must check explicitly and emit so the UI can react.
+        const { error: ghostError } = await this.supabase
+          .from('note_ghosts')
+          .upsert(
+            {
+              user_id: this.userId,
+              note_id: ch.id,
+              version: newVersion,
+              data: newData,
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id,note_id',
+            }
+          );
+        if (ghostError) {
+          if (
+            ghostError.code === '53100' ||
+            /quota_exceeded/i.test(ghostError.message ?? '')
+          ) {
+            console.warn(
+              '[SyncChannel] Quota exceeded on ghost upsert for',
+              ch.id
+            );
+            this.emit('quota-exceeded', ch.id, ghostError);
+            this.localQueue.acknowledge(ch);
+            this.setStatus('idle');
+            return;
           }
-        );
+          console.warn(
+            '[SyncChannel] Ghost upsert failed (non-fatal):',
+            ghostError
+          );
+        }
+        revisionData = newData;
       } else if (ch.o === '-') {
         await this.store.remove(ch.id);
       }
@@ -455,92 +628,109 @@ export class SupabaseSyncChannel extends EventEmitter {
       // Update CV
       await this.store.setChangeVersion(new Date().toISOString());
 
+      // Record a snapshot of the post-ACK state (modify only).
+      // Best-effort: never let a failed revision write break the sync ACK.
+      if (revisionData) {
+        await this.recordRevision(ch.id, newVersion, revisionData);
+      }
+
       this.setStatus(this.localQueue.hasLocalChanges() ? 'syncing' : 'idle');
     } catch (e) {
       console.error('[SyncChannel] Send error:', e);
       this.setStatus('offline');
     }
   }
+
+  /**
+   * Record a full snapshot of a note's post-ACK state into the
+   * dedicated `note_revisions` table.
+   *
+   * Decoupled from the diff-patch chain on purpose — reconstructing
+   * history by forward-replaying patches from {} is fragile (string
+   * deltas need an exact base) and incompatible with aggressive
+   * `note_changes` cleanup. With this table, getRevisions() is just a
+   * single SELECT.
+   *
+   * Errors here are logged and swallowed — a missing snapshot row never
+   * justifies failing the user-visible sync ACK.
+   */
+  private async recordRevision(
+    noteId: string,
+    version: number,
+    data: Record<string, any>
+  ): Promise<void> {
+    try {
+      const { error } = await this.supabase.from('note_revisions').insert({
+        user_id: this.userId,
+        note_id: noteId,
+        version,
+        content: data,
+      });
+      if (error) {
+        // 23505 = duplicate (user_id, note_id, version) — this snapshot
+        // was already recorded (idempotent retry). Treat as success.
+        if (error.code === '23505') return;
+        console.warn('[SyncChannel] recordRevision failed:', error);
+      }
+    } catch (e) {
+      console.warn('[SyncChannel] recordRevision threw:', e);
+    }
+  }
   /**
    * Get historical revisions for a note.
    *
-   * Strategy: fetch patches oldest→newest, forward-apply each to
-   * reconstruct intermediate snapshots. This produces real content
-   * at each point in time.
+   * v3.1+: revisions are full snapshots, written one row per ACK into
+   * the dedicated `note_revisions` table. Reading history is now a
+   * single SELECT with no replay logic — the previous forward-apply-
+   * from-`{}` approach was fragile (string deltas need an exact base)
+   * and could silently drop most of the chain.
    *
-   * The database's cleanup_old_changes() function uses time-bucketing:
-   * - Today: all versions kept
-   * - 1-7 days: 1 per day
-   * - 7-30 days: 1 per week
-   * - 30+ days: deleted
-   *
-   * So the revisions returned here naturally follow this distribution.
+   * Server-side `cleanup_old_revisions()` thins this table on the same
+   * schedule the UI advertises:
+   *   - Today:    keep all
+   *   - 1–7 days: 1 per day
+   *   - 7–30d:    1 per week
+   *   - >30 days: delete
    */
   async getRevisions(
     noteId: string
   ): Promise<Array<{ version: number; data: Record<string, any> }>> {
     try {
-      // Get the current ghost (latest version)
-      const ghost = await this.store.get(noteId);
-      if (!ghost || ghost.version === 0) return [];
-
-      // Fetch patches oldest → newest (up to 60)
-      const { data: patches, error } = await this.supabase
-        .from('note_changes')
-        .select('sv, ev, patch, operation, created_at')
+      const { data, error } = await this.supabase
+        .from('note_revisions')
+        .select('version, content, created_at')
         .eq('user_id', this.userId)
         .eq('note_id', noteId)
-        .eq('operation', 'modify')
-        .order('created_at', { ascending: true })
-        .limit(60);
+        .order('version', { ascending: true });
 
-      if (error || !patches || patches.length === 0) {
-        return [{ version: ghost.version, data: ghost.data }];
+      if (error) {
+        console.warn('[SyncChannel] getRevisions failed:', error);
+        return [];
       }
 
-      const revisions: Array<{ version: number; data: Record<string, any> }> =
-        [];
+      const rows =
+        (data ?? []).map((r: any) => ({
+          version: r.version as number,
+          data: r.content as Record<string, any>,
+        })) ?? [];
 
-      // Forward-apply: start from first patch's base state,
-      // apply each patch to build snapshots
-      let currentData: Record<string, any> = {};
-
-      for (const patch of patches) {
-        try {
-          if (patch.patch && Object.keys(patch.patch).length > 0) {
-            // Apply this patch to get the state after this change
-            const applied = change.apply(patch.patch, currentData);
-            currentData = applied || currentData;
-
-            revisions.push({
-              version: patch.ev || revisions.length + 1,
-              data: { ...currentData },
-            });
-          }
-        } catch (e) {
-          // Forward-replay starting from {} can fail on patches that were
-          // diff'd against a non-empty ghost (string deltas need a base).
-          // We always include the latest ghost as the final revision below,
-          // so a failed mid-chain patch only loses one history entry —
-          // not worth surfacing as a warning.
-          if (process.env.NODE_ENV !== 'production') {
-            console.debug('[SyncChannel] Skipping corrupted patch:', e);
-          }
+      // Always make sure the current ghost is the last entry, even if a
+      // recent revision row hasn't been written yet (e.g. snapshot insert
+      // failed but ACK succeeded — recordRevision is best-effort).
+      try {
+        const ghost = await this.store.get(noteId);
+        if (
+          ghost &&
+          ghost.version > 0 &&
+          (rows.length === 0 || rows[rows.length - 1].version < ghost.version)
+        ) {
+          rows.push({ version: ghost.version, data: ghost.data });
         }
+      } catch {
+        // ghost lookup is just a safety net — ignore failures
       }
 
-      // Always include current ghost as the latest version
-      revisions.push({ version: ghost.version, data: ghost.data });
-
-      // Deduplicate by version
-      const seen = new Set<number>();
-      const unique = revisions.filter((r) => {
-        if (seen.has(r.version)) return false;
-        seen.add(r.version);
-        return true;
-      });
-
-      return unique.sort((a, b) => a.version - b.version);
+      return rows;
     } catch (e) {
       console.error('[SyncChannel] Failed to get revisions:', e);
       return [];

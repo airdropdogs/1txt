@@ -96,7 +96,6 @@ export type SelectNote = Action<'SELECT_NOTE', { noteId: T.EntityId }>;
 export type SelectNoteAbove = Action<'SELECT_NOTE_ABOVE'>;
 export type SelectNoteBelow = Action<'SELECT_NOTE_BELOW'>;
 export type SelectTrash = Action<'SELECT_TRASH'>;
-export type SetAnalytics = Action<'SET_ANALYTICS', { allowAnalytics: boolean }>;
 export type SetEditorViewMode = Action<
   'SET_EDITOR_VIEW_MODE',
   { mode: 'source' | 'wysiwyg' | 'preview' }
@@ -134,7 +133,6 @@ export type SystemThemeUpdate = Action<
   'SYSTEM_THEME_UPDATE',
   { prefers: 'light' | 'dark' }
 >;
-export type ToggleAnalytics = Action<'TOGGLE_ANALYTICS'>;
 export type ToggleAutoHideMenuBar = Action<'TOGGLE_AUTO_HIDE_MENU_BAR'>;
 export type ToggleRestoringDeletedTags =
   Action<'TOGGLE_RESTORING_DELETED_TAGS'>;
@@ -154,6 +152,7 @@ export type ToggleSimperiumConnectionStatus = Action<
 export type ToggleSortTagsAlpha = Action<'TOGGLE_SORT_TAGS_ALPHA'>;
 export type ToggleSortOrder = Action<'TOGGLE_SORT_ORDER'>;
 export type ToggleSpellcheck = Action<'TOGGLE_SPELLCHECK'>;
+export type TogglePreviewButton = Action<'TOGGLE_PREVIEW_BUTTON'>;
 export type ToggleTagDrawer = Action<'TAG_DRAWER_TOGGLE', { show: boolean }>;
 export type ToggleTagEditing = Action<'TAG_EDITING_TOGGLE'>;
 export type TrashNote = Action<'TRASH_NOTE', { noteId: T.EntityId }>;
@@ -291,10 +290,6 @@ export type PreferencesBucketUpdate = Action<
   'PREFERENCES_BUCKET_UPDATE',
   { id: T.EntityId; data: T.Preferences }
 >;
-export type RemoteAnalyticsUpdate = Action<
-  'REMOTE_ANALYTICS_UPDATE',
-  { allowAnalytics: boolean }
->;
 export type RemoteNoteUpdate = Action<
   'REMOTE_NOTE_UPDATE',
   { noteId: T.EntityId; note: T.Note; remoteInfo?: RemoteInfo<T.Note> }
@@ -342,6 +337,15 @@ export type UpdateAccountVerification = Action<
   { state: T.VerificationState }
 >;
 
+/*
+ * Quota (v3.1+: 1 MiB per-user cap, enforced server-side on note_ghosts)
+ */
+export type SetQuota = Action<'SET_QUOTA', { used: number; total: number }>;
+export type SetQuotaExceeded = Action<
+  'SET_QUOTA_EXCEEDED',
+  { noteId?: T.EntityId; message: string }
+>;
+
 export type ActionType =
   | AcknowledgePendingChange
   | AddCollaborator
@@ -384,7 +388,6 @@ export type ActionType =
   | ReallyCloseWindow
   | ReallyLogOut
   | RecordEvent
-  | RemoteAnalyticsUpdate
   | RemoteNoteUpdate
   | RemoteNoteDeleteForever
   | RemoteTagDelete
@@ -403,7 +406,6 @@ export type ActionType =
   | SelectNoteBelow
   | SelectTrash
   | SetAccountName
-  | SetAnalytics
   | SetAutoHideMenuBar
   | SetChangeVersion
   | SetFocusMode
@@ -412,9 +414,12 @@ export type ActionType =
   | SetSortReversed
   | SetSortTagsAlpha
   | SetSortType
+  | SetQuota
+  | SetQuotaExceeded
   | SetSpellCheck
   | SetSystemTag
   | SetTheme
+  | TogglePreviewButton
   | SetUnsyncedNoteIds
   | ShowAllNotes
   | ShowAlternateLoginPrompt
@@ -428,7 +433,6 @@ export type ActionType =
   | TagBucketRemove
   | TagBucketUpdate
   | TagRefresh
-  | ToggleAnalytics
   | ToggleAutoHideMenuBar
   | ToggleRestoringDeletedTags
   | ToggleEditMode

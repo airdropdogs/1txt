@@ -7,6 +7,8 @@ import Modal from 'react-modal';
 import classNames from 'classnames';
 import AboutDialog from './dialogs/about';
 import ErrorBoundary from './error-boundary';
+import Spinner from './components/spinner';
+import { isElectron, isMac } from './utils/platform';
 
 import '../scss/style.scss';
 
@@ -27,7 +29,8 @@ type State = {
     | 'unsubmitted'
     | 'verification-required'
     | 'completing-login'
-    | 'code-error';
+    | 'code-error'
+    | 'loading-workspace';
   emailSentTo: string;
   showAbout: boolean;
 };
@@ -57,6 +60,15 @@ class AppWithoutAuth extends Component<Props, State> {
     this.props.onAuth(token, username);
   }
 
+  /** Defer handoff until the loading screen has painted (two rAFs). */
+  scheduleEnterApp = (token: string, username: string) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        this.login(token, username);
+      });
+    });
+  };
+
   onAppCommand = (event: any) => {
     if ('showDialog' === event.action && 'ABOUT' === event.dialog) {
       this.setState({ showAbout: true });
@@ -82,7 +94,12 @@ class AppWithoutAuth extends Component<Props, State> {
         if (error) throw error;
         const session = data.session;
         if (!session) throw new Error('No session');
-        this.login(session.access_token, username);
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('1txt_pending_initial_sync', '1');
+        }
+        this.setState({ authStatus: 'loading-workspace' }, () =>
+          this.scheduleEnterApp(session.access_token, username)
+        );
       } catch {
         this.setState({ authStatus: 'invalid-credentials' });
       }
@@ -141,8 +158,13 @@ class AppWithoutAuth extends Component<Props, State> {
           localStorage.setItem('1txt_refresh_token', session.refresh_token);
           localStorage.setItem('1txt_user_id', session.user.id);
         }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('1txt_pending_initial_sync', '1');
+        }
 
-        this.login(session.access_token, username);
+        this.setState({ authStatus: 'loading-workspace' }, () =>
+          this.scheduleEnterApp(session.access_token, username)
+        );
       } catch (e: any) {
         console.error('[Auth] OTP verify failed:', e);
         this.setState({ authStatus: 'code-error' });
@@ -158,10 +180,31 @@ class AppWithoutAuth extends Component<Props, State> {
   };
 
   tokenLogin = (username: string, token: string) => {
-    this.login(token, username);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('1txt_pending_initial_sync', '1');
+    }
+    this.setState({ authStatus: 'loading-workspace' }, () =>
+      this.scheduleEnterApp(token, username)
+    );
   };
 
   render() {
+    if (this.state.authStatus === 'loading-workspace') {
+      return (
+        <div className="app">
+          <div
+            className={classNames('login', 'loading-workspace', {
+              'is-electron': isElectron,
+            })}
+          >
+            {isElectron && isMac && <div className="login__draggable-area" />}
+            <Spinner size={48} thickness={4} />
+            <p className="loading-workspace__message">Loading your notes…</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="app">
         <ErrorBoundary>

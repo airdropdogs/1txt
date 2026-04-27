@@ -1,9 +1,6 @@
-import { TKQItem, TracksAPI } from './analytics/types';
 import { compose } from 'redux';
 
 import { electronAPI } from './preload';
-
-import * as S from './state';
 
 declare global {
   const __TEST__: boolean;
@@ -22,16 +19,11 @@ declare global {
 
   interface Window {
     __REDUX_DEVTOOLS_EXTENSION_COMPOSE__?: typeof compose;
-    analyticsEnabled: boolean;
     electron: typeof electronAPI;
     location: Location;
     testEvents: (string | [string, ...any[]])[];
-    _tkq: TKQItem[] & { a: unknown };
     webConfig?: {
       signout?: (callback: () => void) => void;
-    };
-    wpcom: {
-      tracks: TracksAPI;
     };
   }
 }

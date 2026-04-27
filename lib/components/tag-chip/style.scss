@@ -39,6 +39,20 @@
     line-height: 14px;
     font-size: 14px;
     text-align: center;
+    // Reset native <button> chrome so the icon button reads identically to the
+    // legacy <span> visual but stays focusable / clickable independently of
+    // the chip body.
+    border: 0;
+    padding: 0;
+    margin: 0;
+    appearance: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
 
     .icon-cross-small {
       height: 14px;

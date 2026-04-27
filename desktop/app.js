@@ -103,6 +103,19 @@ module.exports = function main() {
       defaultHeight: 768,
     });
 
+    // Window icon. Linux/dev mode read from this path directly; on
+    // Windows packaged builds the .exe-embedded icon (set by
+    // electron-builder.win.icon) takes precedence, but pointing at the
+    // 256×256 PNG also covers the dev `npm run dev` window so it doesn't
+    // fall back to the Electron logo.
+    const windowIcon = path.join(
+      __dirname,
+      '..',
+      'resources',
+      'images',
+      'icon_256x256.png'
+    );
+
     mainWindow = new BrowserWindow({
       backgroundColor: '#fff',
       x: mainWindowState.x,
@@ -112,6 +125,7 @@ module.exports = function main() {
       minWidth: 370,
       minHeight: 520,
       show: false,
+      icon: windowIcon,
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,

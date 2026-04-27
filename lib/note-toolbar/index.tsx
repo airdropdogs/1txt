@@ -3,14 +3,11 @@ import { connect } from 'react-redux';
 import { CmdOrCtrl } from '../utils/platform';
 
 import BackIcon from '../icons/back';
-import ChecklistIcon from '../icons/check-list';
 import EllipsisOutlineIcon from '../icons/ellipsis-outline';
 import IconButton from '../icon-button';
-import InfoIcon from '../icons/info';
 import NewNoteIcon from '../icons/new-note';
-import PreviewIcon from '../icons/preview';
-import PreviewStopIcon from '../icons/preview-stop';
 import SidebarIcon from '../icons/sidebar';
+import InsertMenu from './insert-menu';
 import actions from '../state/actions';
 
 import * as S from '../state';
@@ -21,6 +18,7 @@ type StateProps = {
   editorViewMode: 'source' | 'wysiwyg' | 'preview';
   markdownEnabled: boolean;
   note: T.Note | null;
+  showPreviewButton: boolean;
 };
 
 type DispatchProps = {
@@ -30,7 +28,6 @@ type DispatchProps = {
   toggleEditMode: () => any;
   toggleFocusMode: () => any;
   toggleNoteActions: () => any;
-  toggleNoteInfo: () => any;
   toggleNoteList: () => any;
   setViewMode: (mode: string) => any;
 };
@@ -54,8 +51,8 @@ export class NoteToolbar extends Component<Props> {
       newNote,
       markdownEnabled,
       note,
+      showPreviewButton,
       toggleNoteActions,
-      toggleNoteInfo,
     } = this.props;
 
     return !note ? (
@@ -104,30 +101,27 @@ export class NoteToolbar extends Component<Props> {
               >
                 Aa
               </button>
-              <button
-                type="button"
-                className={`mode-btn ${this.props.editorViewMode === 'preview' ? 'active' : ''}`}
-                onClick={() => this.props.setViewMode('preview')}
-                title="Preview"
-              >
-                👁
-              </button>
+              {showPreviewButton && (
+                <button
+                  type="button"
+                  className={`mode-btn ${this.props.editorViewMode === 'preview' ? 'active' : ''}`}
+                  onClick={() => this.props.setViewMode('preview')}
+                  title="Preview (read-only)"
+                >
+                  👁
+                </button>
+              )}
             </div>
           )}
-          <div className="note-toolbar__button">
-            <IconButton
-              icon={<ChecklistIcon />}
-              onClick={() => window.dispatchEvent(new Event('toggleChecklist'))}
-              title={`Insert Checklist • ${CmdOrCtrl}+Shift+C`}
-            />
-          </div>
-          <div className="note-toolbar__button">
-            <IconButton
-              icon={<InfoIcon />}
-              onClick={toggleNoteInfo}
-              title="Info"
-            />
-          </div>
+          {/* Insert Markdown only makes sense for markdown notes — for plain
+              text notes the snippets would just dump literal `# ` / `**bold**`
+              characters that nothing renders. So when a user turns Markdown
+              off in Note Actions we hide the trigger entirely. */}
+          {markdownEnabled && (
+            <div className="note-toolbar__button">
+              <InsertMenu />
+            </div>
+          )}
           <div className="note-toolbar__button">
             <IconButton
               icon={<EllipsisOutlineIcon />}
@@ -177,6 +171,7 @@ export class NoteToolbar extends Component<Props> {
 
 const mapStateToProps: S.MapState<StateProps> = ({
   data,
+  settings,
   ui: { editMode, editorViewMode, openedNote },
 }) => {
   const note = openedNote ? (data.notes.get(openedNote) ?? null) : null;
@@ -186,6 +181,7 @@ const mapStateToProps: S.MapState<StateProps> = ({
     editorViewMode,
     markdownEnabled: note?.systemTags.includes('markdown') || false,
     note,
+    showPreviewButton: !!settings.showPreviewButton,
   };
 };
 
@@ -196,7 +192,6 @@ const mapDispatchToProps: S.MapDispatch<DispatchProps> = {
   toggleEditMode: actions.ui.toggleEditMode,
   toggleFocusMode: actions.settings.toggleFocusMode,
   toggleNoteActions: actions.ui.toggleNoteActions,
-  toggleNoteInfo: actions.ui.toggleNoteInfo,
   toggleNoteList: actions.ui.toggleNoteList,
   setViewMode: (mode: string) => ({
     type: 'SET_EDITOR_VIEW_MODE' as const,

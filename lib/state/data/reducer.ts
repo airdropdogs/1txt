@@ -10,20 +10,6 @@ import {
 import type * as A from '../action-types';
 import type * as T from '../../types';
 
-export const analyticsAllowed: A.Reducer<boolean | null> = (
-  state = null,
-  action
-) => {
-  switch (action.type) {
-    case 'REMOTE_ANALYTICS_UPDATE':
-    case 'SET_ANALYTICS':
-      return action.allowAnalytics;
-
-    default:
-      return state;
-  }
-};
-
 const accountVerification: A.Reducer<T.VerificationState> = (
   state = 'unknown',
   action
@@ -314,12 +300,6 @@ export const preferences: A.Reducer<Map<T.EntityId, T.Preferences>> = (
   action
 ) => {
   switch (action.type) {
-    case 'SET_ANALYTICS':
-      return new Map(state).set('preferences-key', {
-        ...(state.get('preferences-key') ?? {}),
-        analytics_enabled: action.allowAnalytics,
-      });
-
     case 'PREFERENCES_BUCKET_REMOVE': {
       const next = new Map(state);
       return next.delete(action.id) ? next : state;
@@ -351,7 +331,8 @@ export const tags: A.Reducer<Map<T.TagHash, T.Tag>> = (
     }
 
     case 'EDIT_NOTE':
-    case 'IMPORT_NOTE_WITH_ID': {
+    case 'IMPORT_NOTE_WITH_ID':
+    case 'REMOTE_NOTE_UPDATE': {
       const newTags =
         'EDIT_NOTE' === action.type ? action.changes.tags : action.note.tags;
 
@@ -478,19 +459,28 @@ export const noteTags: A.Reducer<Map<T.TagHash, Set<T.EntityId>>> = (
     }
 
     case 'EDIT_NOTE':
-    case 'IMPORT_NOTE_WITH_ID': {
+    case 'IMPORT_NOTE_WITH_ID':
+    case 'REMOTE_NOTE_UPDATE': {
       const newTags =
         'EDIT_NOTE' === action.type ? action.changes.tags : action.note.tags;
 
-      if (!newTags?.length) {
+      const { noteId } = action;
+      // For EDIT_NOTE the partial change may not touch tags; ignore.
+      // For IMPORT_NOTE_WITH_ID / REMOTE_NOTE_UPDATE, an empty `tags` array
+      // is meaningful — the note explicitly has no tags — and we still need
+      // to make sure the noteId is removed from any tag it used to belong to.
+      const isFullReplace =
+        action.type === 'IMPORT_NOTE_WITH_ID' ||
+        action.type === 'REMOTE_NOTE_UPDATE';
+      if (!isFullReplace && !newTags?.length) {
         return state;
       }
 
-      const { noteId } = action;
-      const newHashes = new Set(newTags.map(t));
+      const newHashes = new Set((newTags ?? []).map(t));
       const next = new Map(state);
+
+      // Drop noteId from tags it no longer has, add to tags it now has.
       next.forEach((notes, tagHash) => {
-        // the note no longer has this tag
         if (notes.has(noteId) && !newHashes.has(tagHash)) {
           const nextNotes = new Set(notes);
           nextNotes.delete(noteId);
@@ -498,9 +488,16 @@ export const noteTags: A.Reducer<Map<T.TagHash, Set<T.EntityId>>> = (
           return;
         }
 
-        // the note now has this tag but didn't before
         if (!notes.has(noteId) && newHashes.has(tagHash)) {
           next.set(tagHash, new Set(notes).add(noteId));
+        }
+      });
+
+      // For tags that don't exist in the index yet (typical when a
+      // remote note arrives carrying a brand-new tag), seed the entry.
+      newHashes.forEach((tagHash) => {
+        if (!next.has(tagHash)) {
+          next.set(tagHash, new Set([noteId]));
         }
       });
 
@@ -546,7 +543,6 @@ export const noteTags: A.Reducer<Map<T.TagHash, Set<T.EntityId>>> = (
 
 export default combineReducers({
   accountVerification,
-  analyticsAllowed,
   notes,
   noteRevisions,
   noteTags,

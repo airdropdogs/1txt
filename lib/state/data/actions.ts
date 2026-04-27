@@ -72,7 +72,3 @@ export const renameTag: A.ActionCreator<A.RenameTag> = (
   oldTagName,
   newTagName,
 });
-
-export const toggleAnalytics: A.ActionCreator<A.ToggleAnalytics> = () => ({
-  type: 'TOGGLE_ANALYTICS',
-});

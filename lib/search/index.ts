@@ -61,8 +61,19 @@ export let searchNotes: (
 ) => [T.EntityId, T.Note | undefined][] = () => [];
 
 export const middleware: S.Middleware = (store) => {
+  // The search middleware maintains its OWN copy of `collection` (separate
+  // from Redux's `ui.collection`) because every action handler that touches
+  // search state needs to consult the active filter without going through
+  // a `getState()` round-trip. To play nicely with workspace persistence
+  // (which preloads `ui.collection` from IndexedDB so users land back in
+  // their last selected tag), we must seed this local copy from the
+  // preloaded `ui.collection` rather than hard-coding `{ type: 'all' }` —
+  // otherwise the initial `queueSearch()` below would dispatch FILTER_NOTES
+  // with the "all" filter, overwriting the persisted tag selection on the
+  // very first frame.
+  const initialCollection = store.getState().ui?.collection ?? { type: 'all' };
   const searchState: SearchState = {
-    collection: { type: 'all' },
+    collection: initialCollection,
     excludeIDs: [],
     hasSelectedFirstNote: false,
     notes: new Map(),

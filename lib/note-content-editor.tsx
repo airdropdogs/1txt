@@ -31,6 +31,10 @@ import {
   withCheckboxCharacters,
   withCheckboxSyntax,
 } from './utils/task-transform';
+import {
+  INSERT_MARKDOWN_EVENT,
+  InsertMarkdownDetail,
+} from './note-toolbar/markdown-snippets';
 
 import * as S from './state';
 import * as T from './types';
@@ -205,6 +209,11 @@ class NoteContentEditor extends Component<Props> {
     this.props.storeHasFocus(this.hasFocus);
     window.addEventListener('resize', clearNotePositions);
     window.addEventListener('toggleChecklist', this.handleChecklist, true);
+    window.addEventListener(
+      INSERT_MARKDOWN_EVENT,
+      this.handleInsertMarkdown as EventListener,
+      true
+    );
     this.toggleShortcuts(true);
   }
 
@@ -217,6 +226,11 @@ class NoteContentEditor extends Component<Props> {
     window.electron?.removeListener('editorCommand');
     window.removeEventListener('input', this.handleUndoRedo, true);
     window.removeEventListener('toggleChecklist', this.handleChecklist, true);
+    window.removeEventListener(
+      INSERT_MARKDOWN_EVENT,
+      this.handleInsertMarkdown as EventListener,
+      true
+    );
     window.removeEventListener('resize', clearNotePositions, true);
     this.toggleShortcuts(false);
   }
@@ -492,6 +506,137 @@ class NoteContentEditor extends Component<Props> {
 
   handleChecklist = (event: Event) => {
     this.editor?.trigger('editorCommand', 'insertChecklist', null);
+  };
+
+  /**
+   * Handler for the global `insertMarkdown` CustomEvent dispatched by the
+   * toolbar's "Insert Markdown" dropdown. We translate the snippet into a
+   * Monaco edit at the current selection. If the snippet is block-level and
+   * the cursor is not already at column 1 we prepend a newline so the
+   * construct (heading, list, blockquote, hr, code block) lives on its own
+   * line — this matches what users intuitively expect from an "Insert" menu.
+   *
+   * If the snippet declares a `selectionAnchor` we move the cursor to select
+   * just the placeholder text (e.g. the "url" inside `[text](url)`) so the
+   * user can immediately start typing the real value.
+   */
+  handleInsertMarkdown = (event: CustomEvent<InsertMarkdownDetail>) => {
+    const editor = this.editor;
+    if (!editor) {
+      return;
+    }
+    const detail = event.detail;
+    if (!detail || typeof detail.snippet !== 'string') {
+      return;
+    }
+
+    const selection = editor.getSelection();
+    if (!selection) {
+      return;
+    }
+
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let text = detail.snippet;
+    let snippetOffsetWithinInsertion = 0;
+    if (detail.blockLevel) {
+      // Look at the raw character immediately before the start of the
+      // selection. If we're not at column 1 and that character isn't already
+      // a newline, prepend one so the block construct starts on a fresh line.
+      const startCol = selection.startColumn;
+      if (startCol > 1) {
+        const prevChar = model.getValueInRange(
+          new Range(
+            selection.startLineNumber,
+            startCol - 1,
+            selection.startLineNumber,
+            startCol
+          )
+        );
+        if (prevChar !== '\n') {
+          text = '\n' + text;
+          snippetOffsetWithinInsertion = 1;
+        }
+      }
+    }
+
+    const op = {
+      identifier: { major: 1, minor: 1 },
+      range: selection,
+      text,
+      forceMoveMarkers: true,
+    };
+    editor.executeEdits('insertMarkdown', [op]);
+
+    // Compute where the inserted snippet ends so we can place the cursor
+    // (or the placeholder selection) accurately. Walk through `text` from
+    // the selection start, advancing rows on '\n' and columns otherwise.
+    const computeEndPosition = (
+      startLine: number,
+      startCol: number,
+      inserted: string
+    ): Position => {
+      let line = startLine;
+      let col = startCol;
+      for (let i = 0; i < inserted.length; i++) {
+        if (inserted.charCodeAt(i) === 10 /* \n */) {
+          line += 1;
+          col = 1;
+        } else {
+          col += 1;
+        }
+      }
+      return new Position(line, col);
+    };
+
+    const offsetInto = (
+      startLine: number,
+      startCol: number,
+      inserted: string,
+      offset: number
+    ): Position =>
+      computeEndPosition(startLine, startCol, inserted.slice(0, offset));
+
+    if (
+      detail.selectionAnchor &&
+      detail.selectionAnchor.length === 2 &&
+      detail.selectionAnchor[0] >= 0 &&
+      detail.selectionAnchor[1] >= detail.selectionAnchor[0]
+    ) {
+      const [anchorStart, anchorEnd] = detail.selectionAnchor;
+      const start = offsetInto(
+        selection.startLineNumber,
+        selection.startColumn,
+        text,
+        snippetOffsetWithinInsertion + anchorStart
+      );
+      const end = offsetInto(
+        selection.startLineNumber,
+        selection.startColumn,
+        text,
+        snippetOffsetWithinInsertion + anchorEnd
+      );
+      editor.setSelection(
+        new Selection(
+          start.lineNumber,
+          start.column,
+          end.lineNumber,
+          end.column
+        )
+      );
+    } else {
+      const end = computeEndPosition(
+        selection.startLineNumber,
+        selection.startColumn,
+        text
+      );
+      editor.setPosition(end);
+    }
+
+    editor.focus();
   };
 
   handleUndoRedo = (e: Event) => {

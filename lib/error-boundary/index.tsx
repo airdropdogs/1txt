@@ -1,36 +1,15 @@
 import React, { Component, FunctionComponent } from 'react';
-import * as Sentry from '@sentry/react';
 import WarningIcon from '../icons/warning';
-import { viewExternalUrl } from '../utils/url-utils';
 import { isElectron } from '../utils/platform';
-import { connect } from 'react-redux';
 
-import * as S from '../state';
-import * as T from '../types';
-import * as selectors from '../state/selectors';
-
-const helpEmail = 'mailto:support@simplenote.com?subject=Simplenote%20Support';
-
-type ErrorMessageProps = {
-  allowAnalytics?: boolean;
-};
-
-const ErrorMessage: FunctionComponent<ErrorMessageProps> = ({
-  allowAnalytics,
-}) => (
+const ErrorMessage: FunctionComponent = () => (
   <div className="error-message">
     <div className="error-message__content">
       <div className="error-message__icon">
         <WarningIcon />
       </div>
       <h1 className="error-message__heading">Oops!</h1>
-      <p>
-        We’re sorry — something went wrong.{' '}
-        {allowAnalytics
-          ? 'Our team has been notified so that we can work to fix the issue. '
-          : ''}
-        Please refresh or try again later.{' '}
-      </p>
+      <p>Something went wrong. Please refresh the application and try again.</p>
       <div className="error-message__action">
         <button
           className="button button-primary"
@@ -45,19 +24,6 @@ const ErrorMessage: FunctionComponent<ErrorMessageProps> = ({
           Refresh application
         </button>
       </div>
-      <p className="error-message__footnote">
-        If the problem persists, please email us at{' '}
-        <a
-          href={helpEmail}
-          onClick={(e) => {
-            e.preventDefault();
-            viewExternalUrl(helpEmail);
-          }}
-        >
-          support@simplenote.com
-        </a>
-        .
-      </p>
     </div>
   </div>
 );
@@ -82,44 +48,20 @@ class ErrorBoundary extends Component {
 
 type ErrorBoundaryWithSentryOwnProps = {
   children: React.ReactNode;
-  isDevConfig: boolean;
+  // kept for backward compatibility with the boot-with-auth call site;
+  // analytics/Sentry are no longer wired up in 1TXT, so this flag is unused.
+  isDevConfig?: boolean;
 };
 
-type ErrorBoundaryWithSentryStateProps = {
-  allowAnalytics: boolean;
-  theme: T.Theme;
-};
-
-type ErrorBoundaryWithSentryProps = ErrorBoundaryWithSentryOwnProps &
-  ErrorBoundaryWithSentryStateProps;
-
-const ErrorBoundaryWithSentry: FunctionComponent<
-  ErrorBoundaryWithSentryProps
-> = ({ allowAnalytics, children, isDevConfig, theme }) => {
-  return (
-    <div>
-      {isDevConfig || !allowAnalytics ? (
-        <ErrorBoundary>{children}</ErrorBoundary>
-      ) : (
-        <Sentry.ErrorBoundary
-          fallback={() => <ErrorMessage allowAnalytics={allowAnalytics} />}
-        >
-          {children}
-        </Sentry.ErrorBoundary>
-      )}
-    </div>
-  );
-};
-
-const mapStateToProps: S.MapState<ErrorBoundaryWithSentryStateProps> = (
-  state
-) => ({
-  allowAnalytics: !!state.data.analyticsAllowed,
-  theme: selectors.getTheme(state),
-});
-
-export const ErrorBoundaryWithAnalytics = connect(mapStateToProps)(
-  ErrorBoundaryWithSentry
-);
+/**
+ * Historically this wrapper conditionally enabled `@sentry/react`'s
+ * `<ErrorBoundary>` when the user opted into analytics. 1TXT has no
+ * analytics pipeline, so we always render the plain ErrorBoundary —
+ * but we keep the export under the same name to avoid touching the
+ * boot file, which is the only consumer.
+ */
+export const ErrorBoundaryWithAnalytics: FunctionComponent<
+  ErrorBoundaryWithSentryOwnProps
+> = ({ children }) => <ErrorBoundary>{children}</ErrorBoundary>;
 
 export default ErrorBoundary;
