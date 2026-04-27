@@ -5,6 +5,8 @@ desktop-build/
 dist/
 logs/
 release/
+release-build/
+*.asar
 1TXT_DOC/
 vendor/
 .env
