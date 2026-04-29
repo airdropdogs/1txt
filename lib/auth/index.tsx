@@ -11,6 +11,7 @@ type OwnProps = {
   hasInsecurePassword: boolean;
   hasInvalidCredentials: boolean;
   hasLoginError: boolean;
+  loginErrorMessage?: string;
   hasTooManyRequests: boolean;
   hasUnverifiedAccount: boolean;
   login: (username: string, password: string) => any;
@@ -157,7 +158,8 @@ export class Auth extends Component<Props> {
           )}
           {(this.props.hasInvalidCredentials || this.props.hasLoginError) && (
             <p className="login__auth-message is-error">
-              Could not send login code. Please try again.
+              {this.props.loginErrorMessage ||
+                'Could not send login code. Please try again.'}
             </p>
           )}
           {passwordErrorMessage && (

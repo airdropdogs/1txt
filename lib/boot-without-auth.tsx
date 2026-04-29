@@ -1,4 +1,4 @@
-﻿import React, { Component } from 'react';
+import React, { Component } from 'react';
 import { render } from 'react-dom';
 import { Auth as AuthApp } from './auth';
 import { getSupabaseClient } from './sync/supabase-client';
@@ -31,6 +31,7 @@ type State = {
     | 'completing-login'
     | 'code-error'
     | 'loading-workspace';
+  authErrorMessage?: string;
   emailSentTo: string;
   showAbout: boolean;
 };
@@ -44,6 +45,7 @@ class AppWithoutAuth extends Component<Props, State> {
     authStatus: 'unsubmitted',
     emailSentTo: '',
     showAbout: false,
+    authErrorMessage: '',
   };
 
   systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -124,10 +126,16 @@ class AppWithoutAuth extends Component<Props, State> {
         this.setState({
           authStatus: 'login-requested',
           emailSentTo: username,
+          authErrorMessage: '',
         });
       } catch (e: any) {
         console.error('[Auth] OTP request failed:', e);
-        this.setState({ authStatus: 'unknown-error' });
+        const message =
+          e?.message || e?.error_description || 'Could not send login code.';
+        this.setState({
+          authStatus: 'unknown-error',
+          authErrorMessage: message,
+        });
       }
     });
   };
@@ -167,7 +175,11 @@ class AppWithoutAuth extends Component<Props, State> {
         );
       } catch (e: any) {
         console.error('[Auth] OTP verify failed:', e);
-        this.setState({ authStatus: 'code-error' });
+        this.setState({
+          authStatus: 'code-error',
+          authErrorMessage:
+            e?.message || 'Could not log in. Check the code and try again.',
+        });
       }
     });
   };
@@ -226,13 +238,18 @@ class AppWithoutAuth extends Component<Props, State> {
             }
             hasTooManyRequests={this.state.authStatus === 'too-many-requests'}
             hasLoginError={this.state.authStatus === 'unknown-error'}
+            loginErrorMessage={this.state.authErrorMessage}
             login={this.authenticate}
             loginRequested={this.state.authStatus === 'login-requested'}
             isCompletingLogin={this.state.authStatus === 'completing-login'}
             hasCodeError={this.state.authStatus === 'code-error'}
             tokenLogin={this.tokenLogin}
             resetErrors={() =>
-              this.setState({ authStatus: 'unsubmitted', emailSentTo: '' })
+              this.setState({
+                authStatus: 'unsubmitted',
+                emailSentTo: '',
+                authErrorMessage: '',
+              })
             }
             requestLogin={this.requestLogin}
             completeLogin={this.completeLogin}
