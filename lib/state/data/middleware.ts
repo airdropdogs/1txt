@@ -92,6 +92,22 @@ export const middleware: S.Middleware =
           noteId: state.ui.openedNote,
         });
 
+      case 'PUBLISH_NOTE': {
+        if (!state.data.notes.has(action.noteId)) {
+          return next(action);
+        }
+
+        const note = state.data.notes.get(action.noteId)!;
+        const publishURL = action.shouldPublish
+          ? note.publishURL || `pub-${action.noteId}`
+          : '';
+
+        return next({
+          ...action,
+          publishURL,
+        } as A.PublishNote & { publishURL: string });
+      }
+
       case 'TRASH_OPEN_NOTE':
         if (!state.ui.openedNote) {
           return;

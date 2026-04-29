@@ -7,7 +7,7 @@ module.exports = (env, argv) => {
 
   return {
     ...baseConfig,
-    entry: ['./boot'],
+    entry: ['./web-entry'],
     target: 'web',
     output: {
       ...baseConfig.output,

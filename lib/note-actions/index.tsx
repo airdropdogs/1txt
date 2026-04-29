@@ -68,7 +68,8 @@ export class NoteActions extends Component<Props> {
   };
 
   getPublishURL = (url: string | undefined) => {
-    return isEmpty(url) ? null : `http://simp.ly/p/${url}`;
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    return isEmpty(url) ? null : `${baseUrl}/p/${url}`;
   };
 
   // Toggling the "Show preview button" off while the user is *currently*

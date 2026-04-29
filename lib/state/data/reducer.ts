@@ -149,8 +149,8 @@ export const notes: A.Reducer<Map<T.EntityId, T.Note>> = (
       }
 
       const note = state.get(action.noteId)!;
-      const alreadyPinned = note.systemTags.includes('published');
-      if (alreadyPinned === action.shouldPublish) {
+      const alreadyPublished = note.systemTags.includes('published');
+      if (alreadyPublished === action.shouldPublish) {
         return state;
       }
 
@@ -158,9 +158,13 @@ export const notes: A.Reducer<Map<T.EntityId, T.Note>> = (
         ? [...note.systemTags, 'published' as T.SystemTag]
         : note.systemTags.filter((tag) => tag !== 'published');
 
+      const publishURL = action.shouldPublish
+        ? note.publishURL || (action.noteId as unknown as string)
+        : '';
+
       return new Map(state).set(
         action.noteId,
-        modified({ ...note, systemTags })
+        modified({ ...note, systemTags, publishURL })
       );
     }
 

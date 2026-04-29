@@ -202,7 +202,7 @@ export type PinNote = Action<
 >;
 export type PublishNote = Action<
   'PUBLISH_NOTE',
-  { noteId: T.EntityId; shouldPublish: boolean }
+  { noteId: T.EntityId; shouldPublish: boolean; publishURL?: string }
 >;
 export type RemoveCollaborator = Action<
   'REMOVE_COLLABORATOR',
