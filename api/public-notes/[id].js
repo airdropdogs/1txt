@@ -4,6 +4,12 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const tableName = 'public_notes';
 
+const applyCors = (res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+};
+
 const getClient = (authorization) => {
   if (!supabaseUrl || !supabaseKey) return null;
   return createClient(supabaseUrl, supabaseKey, {
@@ -14,6 +20,12 @@ const getClient = (authorization) => {
 };
 
 module.exports = async (req, res) => {
+  applyCors(res);
+
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   const client = getClient(req.headers.authorization);
 
   if (!client) {
