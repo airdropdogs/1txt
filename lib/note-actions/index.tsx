@@ -68,7 +68,9 @@ export class NoteActions extends Component<Props> {
   };
 
   getPublishURL = (url: string | undefined) => {
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const baseUrl =
+      config.public_web_url?.replace(/\/$/, '') ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
     return isEmpty(url) ? null : `${baseUrl}/p/${url}`;
   };
 

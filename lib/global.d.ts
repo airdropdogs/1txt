@@ -15,6 +15,7 @@ declare global {
     wpcc_redirect_url: string;
     supabase_url?: string;
     supabase_key?: string;
+    public_web_url?: string;
   };
 
   interface Window {

@@ -6,7 +6,7 @@ import { parse } from 'cookie';
 import { boot as bootWithoutAuth } from './boot-without-auth';
 import { boot as bootLoggingOut } from './logging-out';
 import { isElectron } from './utils/platform';
-import bootPublicNotePage from './public-note-page';
+import bootPublicNotePage from './public-note-page.tsx';
 
 const clearStorage = (): Promise<void> =>
   new Promise((resolveStorage) => {

@@ -159,7 +159,9 @@ export const notes: A.Reducer<Map<T.EntityId, T.Note>> = (
         : note.systemTags.filter((tag) => tag !== 'published');
 
       const publishURL = action.shouldPublish
-        ? note.publishURL || (action.noteId as unknown as string)
+        ? action.publishURL ||
+          note.publishURL ||
+          (action.noteId as unknown as string)
         : '';
 
       return new Map(state).set(

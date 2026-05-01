@@ -9,6 +9,91 @@ import type * as S from '../';
 import type * as T from '../../types';
 import { numberOfNonEmailTags, openedTag } from '../selectors';
 
+const getPublicNoteApiBaseUrl = () => {
+  if (
+    typeof window !== 'undefined' &&
+    /^https?:/.test(window.location.origin)
+  ) {
+    return window.location.origin;
+  }
+
+  return config.public_web_url?.replace(/\/$/, '') || '';
+};
+
+const getStoredAccessToken = () => {
+  if (typeof window === 'undefined') return '';
+
+  const storedUserData = localStorage.getItem('stored_user');
+  if (storedUserData) {
+    try {
+      const storedUser = JSON.parse(storedUserData);
+      if (storedUser?.accessToken) {
+        return storedUser.accessToken;
+      }
+    } catch (e) {
+      // Ignore malformed legacy auth state and fall back to access_token.
+    }
+  }
+
+  return localStorage.getItem('access_token') || '';
+};
+
+const syncPublicNote = async ({
+  noteId,
+  title,
+  content,
+  updatedAt,
+  publishURL,
+  shouldPublish,
+}: {
+  noteId: T.EntityId;
+  title: string;
+  content: string;
+  updatedAt: string;
+  publishURL: string;
+  shouldPublish: boolean;
+}) => {
+  const baseUrl = getPublicNoteApiBaseUrl();
+  if (!baseUrl) return;
+
+  const endpoint = `${baseUrl}/api/public-notes${shouldPublish ? '' : `/${publishURL}`}`;
+  const accessToken = getStoredAccessToken();
+  const headers: Record<string, string> = {};
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  if (shouldPublish) {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: publishURL,
+        noteId,
+        title,
+        content,
+        updatedAt,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+    return;
+  }
+
+  const response = await fetch(endpoint, {
+    method: 'DELETE',
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+};
+
 export const middleware: S.Middleware =
   (store) =>
   (next: (action: A.ActionType) => A.ActionType) =>
@@ -98,14 +183,46 @@ export const middleware: S.Middleware =
         }
 
         const note = state.data.notes.get(action.noteId)!;
-        const publishURL = action.shouldPublish
-          ? note.publishURL || `pub-${action.noteId}`
+        const nextPublishURL = action.shouldPublish
+          ? action.publishURL || note.publishURL || uuid()
           : '';
+        const syncPublishURL = action.shouldPublish
+          ? nextPublishURL
+          : action.publishURL || note.publishURL || '';
 
-        return next({
+        const result = next({
           ...action,
-          publishURL,
-        } as A.PublishNote & { publishURL: string });
+          publishURL: nextPublishURL,
+        } as A.PublishNote);
+
+        if (syncPublishURL) {
+          void syncPublicNote({
+            noteId: action.noteId,
+            title: note.content.split('\n')[0] || 'Untitled',
+            content: note.content,
+            updatedAt: new Date(note.modificationDate * 1000).toISOString(),
+            publishURL: syncPublishURL,
+            shouldPublish: action.shouldPublish,
+          }).catch((error) => {
+            console.error('[Publish] Sync failed:', error);
+            if (typeof window !== 'undefined') {
+              window.alert?.(
+                action.shouldPublish
+                  ? 'Publish failed. Please try again.'
+                  : 'Unpublish failed. Please try again.'
+              );
+            }
+            if (action.shouldPublish) {
+              store.dispatch({
+                ...action,
+                shouldPublish: false,
+                publishURL: syncPublishURL,
+              } as A.PublishNote);
+            }
+          });
+        }
+
+        return result;
       }
 
       case 'TRASH_OPEN_NOTE':

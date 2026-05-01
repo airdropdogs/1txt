@@ -50,7 +50,7 @@ const PublicNotePage = ({ noteId }: { noteId: string }) => {
     return (
       <div className="app public-note-page">
         <main className="public-note-page__content">
-          <h1 className="public-note-page__title">Loading…</h1>
+          <h1 className="public-note-page__title">Loading...</h1>
           <div className="public-note-page__meta">
             Preparing public note preview.
           </div>

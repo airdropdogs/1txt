@@ -7,13 +7,23 @@ const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const fs = require('fs');
 
-// Load .env (if present) — values from .env override matching keys in
-// config.json so contributors can keep their Supabase credentials out of
-// the tracked config file.
+// Load .env (if present) without adding a runtime dependency. Values from
+// the shell still win; .env only fills missing keys for local builds.
 try {
-  require('dotenv').config();
+  const envPath = './.env';
+  if (fs.existsSync(envPath)) {
+    fs.readFileSync(envPath, 'utf8')
+      .split(/\r?\n/)
+      .forEach((line) => {
+        const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+        if (!match || process.env[match[1]]) {
+          return;
+        }
+        process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+      });
+  }
 } catch (e) {
-  // dotenv is optional — safe to ignore if not installed
+  // Ignore malformed local .env files; config.json / process env still apply.
 }
 
 function readConfig() {
@@ -59,6 +69,9 @@ function getConfig() {
   }
   if (process.env.SUPABASE_KEY) {
     config.supabase_key = process.env.SUPABASE_KEY;
+  }
+  if (process.env.PUBLIC_WEB_URL) {
+    config.public_web_url = process.env.PUBLIC_WEB_URL;
   }
   return config;
 }
