@@ -71,3 +71,10 @@ export const toggleAutoHideMenuBar: A.ActionCreator<
 > = () => ({
   type: 'TOGGLE_AUTO_HIDE_MENU_BAR',
 });
+
+export const setBossKeyShortcut: A.ActionCreator<A.SetBossKeyShortcut> = (
+  bossKeyShortcut: string
+) => ({
+  type: 'SET_BOSS_KEY_SHORTCUT',
+  bossKeyShortcut,
+});

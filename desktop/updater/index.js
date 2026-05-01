@@ -7,9 +7,10 @@
  *
  *   1. After launch, fetch metadata JSON (self-hosted or GitHub raw).
  *   2. Compare metadata.version to app.getVersion().
- *   3. If newer: dialog [Download] / [Skip this version] / [Remind me later].
- *      - Download: shell.openExternal(downloadPageUrl)
+ *   3. If newer: dialog [Upgrade] / [Skip this version].
+ *      - Upgrade: shell.openExternal(downloadPageUrl)
  *      - Skip: append version to userData/skipped-versions.json
+ *      - Closing the dialog is treated the same as Skip this version
  *   4. If force === true or current < minSupportedVersion: blocking dialog
  *      [Upgrade desktop] / [Use web app] / [Quit] — cannot dismiss without choosing.
  *
@@ -47,7 +48,12 @@ function fetchJson(url, timeoutMs = 8000) {
       url,
       { headers: { 'User-Agent': `1TXT/${app.getVersion()}` } },
       (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        if (
+          res.statusCode &&
+          res.statusCode >= 300 &&
+          res.statusCode < 400 &&
+          res.headers.location
+        ) {
           // follow one redirect
           fetchJson(res.headers.location, timeoutMs).then(resolve, reject);
           res.resume();
@@ -107,15 +113,15 @@ function showUpdateDialog(meta, parentWindow) {
   const downloadUrl = meta.downloadPageUrl || config.updater.downloadPageUrl;
   const message = `1TXT ${meta.version} is available`;
   const detail =
-    `Current version: ${current}\nLatest version: ${meta.version}\n\n` +
+    `Current: ${current}\nLatest: ${meta.version}\n\n` +
     (meta.releaseNotes ? meta.releaseNotes + '\n\n' : '') +
-    `Choose Download to open the download page in your browser.`;
+    `Click Upgrade to open the download page.`;
 
   const result = dialog.showMessageBoxSync(parentWindow || null, {
     type: 'info',
-    buttons: ['Download', 'Skip this version', 'Remind me later'],
+    buttons: ['Upgrade', 'Skip this version'],
     defaultId: 0,
-    cancelId: 2,
+    cancelId: 1,
     title: 'Update available',
     message,
     detail,
@@ -131,39 +137,6 @@ function showUpdateDialog(meta, parentWindow) {
       writeSkipped(skipped);
     }
     log.info(`User skipped version ${meta.version}`);
-  }
-  // Remind me later: no-op; prompt again on next launch
-}
-
-function showForceUpgradeDialog(meta, parentWindow) {
-  const downloadUrl = meta.downloadPageUrl || config.updater.downloadPageUrl;
-  const webUrl = meta.webAppUrl || config.updater.webAppUrl;
-  const message = 'This version is no longer supported. Please upgrade.';
-  const detail =
-    `Current version: ${app.getVersion()}\nLatest version: ${meta.version}\n\n` +
-    (meta.releaseNotes ||
-      'The sync protocol or data format has changed; this build cannot continue.') +
-    '\n\nChoose how to proceed:';
-
-  const result = dialog.showMessageBoxSync(parentWindow || null, {
-    type: 'warning',
-    buttons: ['Upgrade desktop', 'Use web app', 'Quit'],
-    defaultId: 0,
-    cancelId: 2,
-    title: 'Upgrade required',
-    message,
-    detail,
-    noLink: true,
-  });
-
-  if (result === 0) {
-    shell.openExternal(downloadUrl);
-    app.quit();
-  } else if (result === 1) {
-    if (webUrl) shell.openExternal(webUrl);
-    app.quit();
-  } else {
-    app.quit();
   }
 }
 
@@ -200,17 +173,6 @@ async function check({ silent = true, parentWindow = null } = {}) {
 
   const current = app.getVersion();
 
-  // 1) Forced upgrade
-  const minVer = meta.minSupportedVersion;
-  const mustForce =
-    meta.force === true ||
-    (isValidVersion(minVer) && semver.lt(current, minVer));
-  if (mustForce && semver.gt(meta.version, current)) {
-    showForceUpgradeDialog(meta, parentWindow);
-    return;
-  }
-
-  // 2) Optional upgrade
   if (semver.lte(meta.version, current)) {
     if (!silent) {
       dialog.showMessageBoxSync(parentWindow || null, {

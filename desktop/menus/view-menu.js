@@ -1,6 +1,12 @@
 const { buildRadioGroup, appCommandSender } = require('./utils');
 const platform = require('../detect/platform');
 
+const minimizeWithBossKey = (item, focusedWindow) => {
+  if (focusedWindow) {
+    focusedWindow.minimize();
+  }
+};
+
 const buildViewMenu = (settings, isAuthenticated) => {
   settings = settings || {};
   isAuthenticated = isAuthenticated || false;
@@ -179,6 +185,13 @@ const buildViewMenu = (settings, isAuthenticated) => {
         type: 'checkbox',
         checked: settings.focusModeEnabled,
         click: appCommandSender({ action: 'toggleFocusMode' }),
+      },
+      {
+        label: 'Boss Key',
+        visible: isAuthenticated,
+        accelerator: settings.bossKeyShortcut || 'Alt+1',
+        registerAccelerator: false,
+        click: minimizeWithBossKey,
       },
       {
         type: 'separator',

@@ -1,10 +1,14 @@
 import React, { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
 import Dialog from '../../dialog';
-import { closeDialog } from '../../state/ui/actions';
+import { closeDialog as closeDialogAction } from '../../state/ui/actions';
 import { CmdOrCtrl, isElectron } from '../../utils/platform';
 
 import * as S from '../../state';
+
+type StateProps = {
+  bossKeyShortcut: string;
+};
 
 type DispatchProps = {
   closeDialog: () => any;
@@ -37,9 +41,29 @@ const Keys = ({
   </div>
 );
 
-export class AboutDialog extends Component<DispatchProps> {
+type Props = StateProps & DispatchProps;
+
+const toDisplayKeys = (shortcut: string): (string | [string, string])[] =>
+  shortcut
+    .split('+')
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .map((token) => {
+      if (token === 'CommandOrControl') {
+        return CmdOrCtrl;
+      }
+
+      if (token === 'Alt') {
+        return ['Alt', 'Option'];
+      }
+
+      return token;
+    });
+
+export class AboutDialog extends Component<Props> {
   render() {
-    const { closeDialog } = this.props;
+    const { bossKeyShortcut, closeDialog } = this.props;
+    const bossKeyDisplay = toDisplayKeys(bossKeyShortcut || 'Alt+1');
 
     return (
       <div className="keybindings">
@@ -56,6 +80,11 @@ export class AboutDialog extends Component<DispatchProps> {
                     Toggle focus mode
                   </Keys>
                 </li>
+                {isElectron && (
+                  <li>
+                    <Keys keys={bossKeyDisplay}>Boss key</Keys>
+                  </li>
+                )}
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'S']}>
                     Focus search field
@@ -160,8 +189,14 @@ export class AboutDialog extends Component<DispatchProps> {
   }
 }
 
+const mapStateToProps: S.MapState<StateProps> = ({
+  settings: { bossKeyShortcut },
+}) => ({
+  bossKeyShortcut,
+});
+
 const mapDispatchToProps: S.MapDispatch<DispatchProps> = {
-  closeDialog,
+  closeDialog: closeDialogAction,
 };
 
-export default connect(null, mapDispatchToProps)(AboutDialog);
+export default connect(mapStateToProps, mapDispatchToProps)(AboutDialog);

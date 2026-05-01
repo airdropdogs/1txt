@@ -205,13 +205,6 @@ export const middleware: S.Middleware =
             shouldPublish: action.shouldPublish,
           }).catch((error) => {
             console.error('[Publish] Sync failed:', error);
-            if (typeof window !== 'undefined') {
-              window.alert?.(
-                action.shouldPublish
-                  ? 'Publish failed. Please try again.'
-                  : 'Unpublish failed. Please try again.'
-              );
-            }
             if (action.shouldPublish) {
               store.dispatch({
                 ...action,

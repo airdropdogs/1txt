@@ -43,6 +43,15 @@ const keyboardShortcuts: A.Reducer<boolean> = (state = true, action) => {
   }
 };
 
+const bossKeyShortcut: A.Reducer<string> = (state = 'Alt+1', action) => {
+  switch (action.type) {
+    case 'SET_BOSS_KEY_SHORTCUT':
+      return action.bossKeyShortcut;
+    default:
+      return state;
+  }
+};
+
 const lineLength: A.Reducer<T.LineLength> = (state = 'narrow', action) => {
   switch (action.type) {
     case 'setLineLength':
@@ -162,6 +171,7 @@ export default combineReducers({
   autoHideMenuBar,
   focusModeEnabled,
   keyboardShortcuts,
+  bossKeyShortcut,
   lineLength,
   markdownEnabled,
   noteDisplay,

@@ -8,6 +8,7 @@ const {
   Menu,
   session,
   nativeTheme,
+  globalShortcut,
 } = require('electron');
 
 const path = require('path');
@@ -69,6 +70,10 @@ module.exports = function main() {
     shouldQuit = true;
   });
 
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
+  });
+
   // Fixes rendering bug on Linux when sandbox === true (Electron 11.0)
   if (process.platform === 'linux') {
     app.disableHardwareAcceleration();
@@ -90,6 +95,70 @@ module.exports = function main() {
     isDev && process.env.DEV_SERVER
       ? 'http://localhost:4000' // TODO: find a solution to use host and port based on make config.
       : 'file://' + path.join(__dirname, '..', 'dist', 'index.html');
+
+  const DEFAULT_BOSS_KEY_SHORTCUT = 'Alt+1';
+  let currentBossKeyShortcut = null;
+
+  const normalizeBossKeyShortcut = (shortcut) => {
+    if (typeof shortcut !== 'string') {
+      return DEFAULT_BOSS_KEY_SHORTCUT;
+    }
+
+    const trimmed = shortcut.trim();
+    return trimmed ? trimmed : DEFAULT_BOSS_KEY_SHORTCUT;
+  };
+
+  const toggleBossKeyWindow = () => {
+    if (!mainWindow) {
+      return;
+    }
+
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+      return;
+    }
+
+    if (!mainWindow.isVisible()) {
+      mainWindow.show();
+      mainWindow.focus();
+      return;
+    }
+
+    if (!mainWindow.isFocused()) {
+      mainWindow.show();
+      mainWindow.focus();
+      return;
+    }
+
+    mainWindow.minimize();
+  };
+
+  const registerBossKey = (shortcutCandidate) => {
+    const shortcut = normalizeBossKeyShortcut(shortcutCandidate);
+
+    if (shortcut === currentBossKeyShortcut) {
+      return;
+    }
+
+    if (currentBossKeyShortcut) {
+      globalShortcut.unregister(currentBossKeyShortcut);
+      currentBossKeyShortcut = null;
+    }
+
+    if (globalShortcut.register(shortcut, toggleBossKeyWindow)) {
+      currentBossKeyShortcut = shortcut;
+      return;
+    }
+
+    if (
+      shortcut !== DEFAULT_BOSS_KEY_SHORTCUT &&
+      globalShortcut.register(DEFAULT_BOSS_KEY_SHORTCUT, toggleBossKeyWindow)
+    ) {
+      currentBossKeyShortcut = DEFAULT_BOSS_KEY_SHORTCUT;
+    }
+  };
 
   const activateWindow = function () {
     // Only allow a single window
@@ -155,6 +224,7 @@ module.exports = function main() {
     const menuTemplate = createMenuTemplate();
     const appMenu = Menu.buildFromTemplate(menuTemplate, mainWindow);
     Menu.setApplicationMenu(appMenu);
+    registerBossKey(DEFAULT_BOSS_KEY_SHORTCUT);
 
     ipcMain.on('appStateUpdate', function (event, args) {
       const settings = args['settings'] || {};
@@ -162,6 +232,7 @@ module.exports = function main() {
       Menu.setApplicationMenu(
         Menu.buildFromTemplate(createMenuTemplate(args), mainWindow)
       );
+      registerBossKey(settings.bossKeyShortcut);
       if ('theme' in settings) {
         nativeTheme.themeSource = settings.theme;
       }

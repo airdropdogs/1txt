@@ -66,6 +66,12 @@
 
   .settings-item-control {
     flex: none;
+
+    &.settings-item-control--inline {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
   }
 
   .settings-item-text-input {
@@ -82,5 +88,20 @@
       z-index: 1;
       outline: none;
     }
+
+    &.settings-item-text-input--shortcut {
+      width: 190px;
+      text-align: right;
+    }
   }
+}
+
+.settings-hint {
+  line-height: normal;
+  color: var(--settings-fg-color);
+}
+
+.settings-error {
+  line-height: normal;
+  color: #d13a32;
 }

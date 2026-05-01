@@ -21,10 +21,10 @@ Details below (start at Section 3).
 
 Format `MAJOR.MINOR.PATCH`, per [Semantic Versioning 2.0](https://semver.org/).
 
-| Bump | When | Example |
-|------|------|---------|
-| **PATCH** | Bug fixes, small tweaks, copy edits | `1.0.0` → `1.0.1`: fix “sync icon lag” |
-| **MINOR** | Backward-compatible features | `1.0.1` → `1.1.0`: folders, export PDF |
+| Bump      | When                                                      | Example                                 |
+| --------- | --------------------------------------------------------- | --------------------------------------- |
+| **PATCH** | Bug fixes, small tweaks, copy edits                       | `1.0.0` → `1.0.1`: fix “sync icon lag”  |
+| **MINOR** | Backward-compatible features                              | `1.0.1` → `1.1.0`: folders, export PDF  |
 | **MAJOR** | Breaking changes: schema incompatible, required migration | `1.x` → `2.0.0`: Supabase layout change |
 
 > **Data migration usually implies MAJOR.** If old IndexedDB or remote tables cannot be read without a migration path, bump MAJOR and plan a forced upgrade (Section 4.3).
@@ -36,16 +36,16 @@ Format `MAJOR.MINOR.PATCH`, per [Semantic Versioning 2.0](https://semver.org/).
 > Maintain the version **only** in repo-root **`version.json`**.  
 > Release automation syncs everything else — do not hand-edit `package.json` for releases.
 
-| Location | Maintainer | How it updates |
-|----------|------------|----------------|
-| **`version.json`** | **You** | Edit before each release |
-| `package.json` `version` | Script | `npm run release` |
-| `webpack.config.js` | Build | Reads `package.json` |
-| `desktop/config/index.js` | App | Reads `package.json` |
-| Running app | Electron | `app.getVersion()` |
-| `electron-builder.json` artifacts | Builder | `${version}` |
-| About dialog | UI | `config.version` |
-| Git tag `v1.0.0` | Script | Created on release |
+| Location                          | Maintainer | How it updates           |
+| --------------------------------- | ---------- | ------------------------ |
+| **`version.json`**                | **You**    | Edit before each release |
+| `package.json` `version`          | Script     | `npm run release`        |
+| `webpack.config.js`               | Build      | Reads `package.json`     |
+| `desktop/config/index.js`         | App        | Reads `package.json`     |
+| Running app                       | Electron   | `app.getVersion()`       |
+| `electron-builder.json` artifacts | Builder    | `${version}`             |
+| About dialog                      | UI         | `config.version`         |
+| Git tag `v1.0.0`                  | Script     | Created on release       |
 
 Clients may fetch metadata from:
 
@@ -110,14 +110,14 @@ The script aborts on failure; fix and re-run. Typical messages:
 
 ### 4.1 Design
 
-| | Choice |
-|---|--------|
-| Auto-download | No |
-| Silent install | No |
-| Dialog | Yes |
-| “Download” opens browser | Yes |
-| “Skip this version” | Yes |
-| Forced upgrade | Yes (for emergencies) |
+|                          | Choice                |
+| ------------------------ | --------------------- |
+| Auto-download            | No                    |
+| Silent install           | No                    |
+| Dialog                   | Yes                   |
+| “Download” opens browser | Yes                   |
+| “Skip this version”      | Yes                   |
+| Forced upgrade           | Yes (for emergencies) |
 
 Portable ZIP and NSIS builds use the **same** logic.
 
@@ -125,34 +125,33 @@ Portable ZIP and NSIS builds use the **same** logic.
 
 About **5 seconds** after launch, the main process fetches `version.json`. If:
 
-- `version.json.version` > `app.getVersion()`, and  
+- `version.json.version` > `app.getVersion()`, and
 - the user has not skipped this version,
 
 show:
 
 ```
-+------------------------------------------+
-|  Update available                        |
-|                                          |
-|  1TXT 1.1.0 is out                       |
-|                                          |
-|  Current: 1.0.0                          |
-|  Latest:  1.1.0                          |
-|                                          |
-|  Folder groups and offline mode...       |
-|                                          |
-|  "Download" opens the download page      |
-|  in your browser.                        |
-|                                          |
-|  [Download]  [Skip this version]  [Later]|
-+------------------------------------------+
++--------------------------------------+
+|  Update available                    |
+|                                      |
+|  1TXT 1.1.0 is out                   |
+|                                      |
+|  Current: 1.0.0                      |
+|  Latest:  1.1.0                      |
+|                                      |
+|  Folder groups and offline mode...   |
+|                                      |
+|  Click Upgrade to open download page.|
+|                                      |
+|  [Upgrade]  [Skip this version]      |
++--------------------------------------+
 ```
 
-| Button | Behavior |
-|--------|----------|
-| Download | `shell.openExternal(downloadPageUrl)` |
-| Skip this version | Writes version to `userData/skipped-versions.json`; no prompt for that version again |
-| Later | Close; prompt again next launch |
+| Button             | Behavior                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| Upgrade            | `shell.openExternal(downloadPageUrl)`                                                |
+| Skip this version  | Writes version to `userData/skipped-versions.json`; no prompt for that version again |
+| Close window / Esc | Same as Skip this version; do not prompt for that version again                      |
 
 **Help → Check for Updates…** triggers the same check manually.
 
@@ -176,11 +175,11 @@ If **`force: true`** or **`minSupportedVersion`** rules apply, show a blocking d
 +------------------------------------------+
 ```
 
-| Button | Behavior |
-|--------|----------|
+| Button          | Behavior                         |
+| --------------- | -------------------------------- |
 | Upgrade desktop | Open download page, **quit app** |
-| Use web app | Open `webAppUrl`, **quit app** |
-| Quit | Exit |
+| Use web app     | Open `webAppUrl`, **quit app**   |
+| Quit            | Exit                             |
 
 ### 4.4 Client config (`desktop/config-updater.json`)
 
@@ -252,9 +251,9 @@ Optional beta channel: host another `version.json` on a `beta` branch and point 
 
 ### 7.2 Portable ZIP upgrade path
 
-1. Dialog → Download → get new ZIP.  
-2. Extract to a **new** folder.  
-3. **Move** the old `1txt-data/` into the new folder (settings + session).  
+1. Dialog → Download → get new ZIP.
+2. Extract to a **new** folder.
+3. **Move** the old `1txt-data/` into the new folder (settings + session).
 4. Remove the old folder; launch the new EXE.
 
 Document this on the download page.
@@ -296,15 +295,15 @@ Host the same JSON at `https://your-domain.example/version.json` and set `metada
 
 ## 9. Files involved
 
-| File | Role |
-|------|------|
-| **`version.json`** | Source of truth + remote metadata |
-| `package.json` | Synced version; do not edit for releases |
-| `scripts/release.js` | Release automation |
-| `desktop/updater/index.js` | Updater client |
-| `desktop/config-updater.json` | URLs + delay |
-| `desktop/menus/menu-items.js` | Help → Check for updates |
-| `desktop/app.js` | Calls updater after launch |
-| `electron-builder.json` | Versioned artifact names |
-| `RELEASE-NOTES.md` | Human-readable changelog |
-| `docs/windows-packaging.md` | Windows ZIP + NSIS details |
+| File                          | Role                                     |
+| ----------------------------- | ---------------------------------------- |
+| **`version.json`**            | Source of truth + remote metadata        |
+| `package.json`                | Synced version; do not edit for releases |
+| `scripts/release.js`          | Release automation                       |
+| `desktop/updater/index.js`    | Updater client                           |
+| `desktop/config-updater.json` | URLs + delay                             |
+| `desktop/menus/menu-items.js` | Help → Check for updates                 |
+| `desktop/app.js`              | Calls updater after launch               |
+| `electron-builder.json`       | Versioned artifact names                 |
+| `RELEASE-NOTES.md`            | Human-readable changelog                 |
+| `docs/windows-packaging.md`   | Windows ZIP + NSIS details               |

@@ -25,6 +25,7 @@ const KNOWN_SETTINGS_KEYS = [
   'autoHideMenuBar',
   'focusModeEnabled',
   'keyboardShortcuts',
+  'bossKeyShortcut',
   'lineLength',
   'markdownEnabled',
   'noteDisplay',

@@ -52,6 +52,10 @@ export type SetSpellCheck = Action<
   { spellCheckEnabled: boolean }
 >;
 export type SetTheme = Action<'setTheme', { theme: T.Theme }>;
+export type SetBossKeyShortcut = Action<
+  'SET_BOSS_KEY_SHORTCUT',
+  { bossKeyShortcut: string }
+>;
 
 /*
  * Normal action types
@@ -419,6 +423,7 @@ export type ActionType =
   | SetSpellCheck
   | SetSystemTag
   | SetTheme
+  | SetBossKeyShortcut
   | TogglePreviewButton
   | SetUnsyncedNoteIds
   | ShowAllNotes
