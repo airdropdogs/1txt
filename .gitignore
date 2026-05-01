@@ -3,6 +3,7 @@ config.json
 config-local.json
 desktop-build/
 dist/
+dist-web/
 logs/
 release/
 release-build/
