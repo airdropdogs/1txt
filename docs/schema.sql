@@ -205,38 +205,38 @@ ALTER PUBLICATION supabase_realtime ADD TABLE note_changes;
 --
 -- Rules:
 -- - Today: keep all
--- - 1–7 days ago: keep last per (user_id, note_id, day)
--- - 7–30 days ago: keep last per (user_id, note_id, ISO week)
--- - Older than 30 days: delete
+-- - 1–30 days ago: keep last per (user_id, note_id, day)
+-- - 30–90 days ago: keep last per (user_id, note_id, ISO week)
+-- - Older than 90 days: delete
 -- ==========================================
 
 CREATE OR REPLACE FUNCTION cleanup_old_changes()
 RETURNS void AS $$
 BEGIN
   DELETE FROM note_changes
-  WHERE created_at < NOW() - INTERVAL '30 days';
+  WHERE created_at < NOW() - INTERVAL '90 days';
 
   DELETE FROM note_changes
   WHERE id NOT IN (
     SELECT DISTINCT ON (user_id, note_id, created_at::date) id
     FROM note_changes
-    WHERE created_at >= NOW() - INTERVAL '7 days'
+    WHERE created_at >= NOW() - INTERVAL '30 days'
       AND created_at < NOW() - INTERVAL '1 day'
     ORDER BY user_id, note_id, created_at::date, created_at DESC
   )
-  AND created_at >= NOW() - INTERVAL '7 days'
+  AND created_at >= NOW() - INTERVAL '30 days'
   AND created_at < NOW() - INTERVAL '1 day';
 
   DELETE FROM note_changes
   WHERE id NOT IN (
     SELECT DISTINCT ON (user_id, note_id, date_trunc('week', created_at)) id
     FROM note_changes
-    WHERE created_at >= NOW() - INTERVAL '30 days'
-      AND created_at < NOW() - INTERVAL '7 days'
+    WHERE created_at >= NOW() - INTERVAL '90 days'
+      AND created_at < NOW() - INTERVAL '30 days'
     ORDER BY user_id, note_id, date_trunc('week', created_at), created_at DESC
   )
-  AND created_at >= NOW() - INTERVAL '30 days'
-  AND created_at < NOW() - INTERVAL '7 days';
+  AND created_at >= NOW() - INTERVAL '90 days'
+  AND created_at < NOW() - INTERVAL '30 days';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -282,38 +282,38 @@ CREATE POLICY "Users own revisions"
 --
 -- Same time-bucketing rules as cleanup_old_changes(), applied to the
 -- snapshot table:
---   - Today:        keep all
---   - 1–7 days ago: keep last per (user_id, note_id, day)
---   - 7–30 days:    keep last per (user_id, note_id, ISO week)
---   - >30 days:     delete
+--   - Today:         keep all
+--   - 1–30 days ago: keep last per (user_id, note_id, day)
+--   - 30–90 days:    keep last per (user_id, note_id, ISO week)
+--   - >90 days:      delete
 -- ==========================================
 CREATE OR REPLACE FUNCTION cleanup_old_revisions()
 RETURNS void AS $$
 BEGIN
   DELETE FROM note_revisions
-  WHERE created_at < NOW() - INTERVAL '30 days';
+  WHERE created_at < NOW() - INTERVAL '90 days';
 
   DELETE FROM note_revisions
   WHERE id NOT IN (
     SELECT DISTINCT ON (user_id, note_id, created_at::date) id
     FROM note_revisions
-    WHERE created_at >= NOW() - INTERVAL '7 days'
+    WHERE created_at >= NOW() - INTERVAL '30 days'
       AND created_at < NOW() - INTERVAL '1 day'
     ORDER BY user_id, note_id, created_at::date, created_at DESC
   )
-  AND created_at >= NOW() - INTERVAL '7 days'
+  AND created_at >= NOW() - INTERVAL '30 days'
   AND created_at < NOW() - INTERVAL '1 day';
 
   DELETE FROM note_revisions
   WHERE id NOT IN (
     SELECT DISTINCT ON (user_id, note_id, date_trunc('week', created_at)) id
     FROM note_revisions
-    WHERE created_at >= NOW() - INTERVAL '30 days'
-      AND created_at < NOW() - INTERVAL '7 days'
+    WHERE created_at >= NOW() - INTERVAL '90 days'
+      AND created_at < NOW() - INTERVAL '30 days'
     ORDER BY user_id, note_id, date_trunc('week', created_at), created_at DESC
   )
-  AND created_at >= NOW() - INTERVAL '30 days'
-  AND created_at < NOW() - INTERVAL '7 days';
+  AND created_at >= NOW() - INTERVAL '90 days'
+  AND created_at < NOW() - INTERVAL '30 days';
 END;
 $$ LANGUAGE plpgsql;
 

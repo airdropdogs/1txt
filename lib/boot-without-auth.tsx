@@ -96,6 +96,18 @@ class AppWithoutAuth extends Component<Props, State> {
         if (error) throw error;
         const session = data.session;
         if (!session) throw new Error('No session');
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('1txt_refresh_token', session.refresh_token);
+          localStorage.setItem('1txt_user_id', session.user.id);
+          localStorage.setItem(
+            'stored_user',
+            JSON.stringify({
+              accessToken: session.access_token,
+              username,
+            })
+          );
+          localStorage.setItem('access_token', session.access_token);
+        }
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem('1txt_pending_initial_sync', '1');
         }
@@ -161,10 +173,18 @@ class AppWithoutAuth extends Component<Props, State> {
         const session = data.session;
         if (!session) throw new Error('No session returned');
 
-        // Store refresh token for sync middleware to use
+        // Store session for startup restore and sync middleware
         if (typeof localStorage !== 'undefined') {
           localStorage.setItem('1txt_refresh_token', session.refresh_token);
           localStorage.setItem('1txt_user_id', session.user.id);
+          localStorage.setItem(
+            'stored_user',
+            JSON.stringify({
+              accessToken: session.access_token,
+              username,
+            })
+          );
+          localStorage.setItem('access_token', session.access_token);
         }
         if (typeof sessionStorage !== 'undefined') {
           sessionStorage.setItem('1txt_pending_initial_sync', '1');

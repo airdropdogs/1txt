@@ -7,6 +7,7 @@ import { boot as bootWithoutAuth } from './boot-without-auth';
 import { boot as bootLoggingOut } from './logging-out';
 import { isElectron } from './utils/platform';
 import bootPublicNotePage from './public-note-page.tsx';
+import { getSupabaseClient } from './sync/supabase-client';
 
 const clearStorage = (): Promise<void> =>
   new Promise((resolveStorage) => {
@@ -17,6 +18,8 @@ const clearStorage = (): Promise<void> =>
     localStorage.removeItem('localQueue:tag');
     localStorage.removeItem('simpleNote');
     localStorage.removeItem('stored_user');
+    localStorage.removeItem('1txt_refresh_token');
+    localStorage.removeItem('1txt_user_id');
     sessionStorage.clear();
     window.electron?.send('appStateUpdate', {});
 
@@ -58,18 +61,32 @@ const forceReload = () => {
   }
 };
 
-const loadAccount = () => {
+type StoredAccount = {
+  accessToken: string | null;
+  username: string | null;
+  refreshToken: string | null;
+  userId: string | null;
+};
+
+const readStoredAccount = (): StoredAccount => {
   const storedUserData = localStorage.getItem('stored_user');
-  if (!storedUserData) {
-    return [null, null];
+  let storedUser: { accessToken?: string; username?: string } | null = null;
+
+  if (storedUserData) {
+    try {
+      storedUser = JSON.parse(storedUserData);
+    } catch (e) {
+      storedUser = null;
+    }
   }
 
-  try {
-    const storedUser = JSON.parse(storedUserData);
-    return [storedUser.accessToken, storedUser.username];
-  } catch (e) {
-    return [null, null];
-  }
+  return {
+    accessToken:
+      storedUser?.accessToken || localStorage.getItem('access_token'),
+    username: storedUser?.username || null,
+    refreshToken: localStorage.getItem('1txt_refresh_token'),
+    userId: localStorage.getItem('1txt_user_id'),
+  };
 };
 
 const saveAccount = (accessToken: string, username: string): void => {
@@ -77,49 +94,63 @@ const saveAccount = (accessToken: string, username: string): void => {
     'stored_user',
     JSON.stringify({ accessToken, username })
   );
+  localStorage.setItem('access_token', accessToken);
 };
 
-const getStoredAccount = () => {
-  const [storedToken, storedUsername] = loadAccount();
+const restoreSessionIfNeeded = async (): Promise<StoredAccount> => {
+  const account = readStoredAccount();
+  if (!account.accessToken || !account.refreshToken) {
+    return account;
+  }
 
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return account;
+  }
+
+  try {
+    const { error } = await supabase.auth.setSession({
+      access_token: account.accessToken,
+      refresh_token: account.refreshToken,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    return account;
+  } catch (e) {
+    console.warn('[Auth] Failed to restore session from storage:', e);
+    await clearStorage();
+    return {
+      accessToken: null,
+      username: null,
+      refreshToken: null,
+      userId: null,
+    };
+  }
+};
+
+const start = async () => {
+  const pathname = window.location.pathname;
+
+  if (/^\/p\/[^/]+/.test(pathname)) {
+    const noteId = pathname.split('/').pop() || '';
+    bootPublicNotePage(noteId);
+    return;
+  }
+
+  const restoredAccount = await restoreSessionIfNeeded();
   const cookie = parse(document.cookie);
+
   if (config.is_app_engine && cookie?.token && cookie?.email) {
-    if (cookie.email !== storedUsername) {
-      clearStorage();
+    if (cookie.email !== restoredAccount.username) {
+      await clearStorage();
       saveAccount(cookie.token, cookie.email);
     }
-    return [cookie.token, cookie.email];
-  }
-
-  if (storedToken) {
-    return [storedToken, storedUsername];
-  }
-
-  const accessToken = localStorage.getItem('access_token');
-  if (accessToken) {
-    return [accessToken, null];
-  }
-
-  return [null, null];
-};
-
-const [storedToken, storedUsername] = getStoredAccount();
-const pathname = window.location.pathname;
-
-if (/^\/p\/[^/]+/.test(pathname)) {
-  const noteId = pathname.split('/').pop() || '';
-  bootPublicNotePage(noteId);
-} else if (config.is_app_engine && !storedToken) {
-  window.webConfig?.signout?.(() => {
-    window.location = `${config.app_engine_url}/`;
-  });
-} else if (storedToken) {
-  Promise.all([
-    !('normalize' in String.prototype)
-      ? import(/* webpackChunkName: 'unorm' */ 'unorm')
-      : Promise.resolve(),
-    import(/* webpackChunkName: 'boot-with-auth' */ './boot-with-auth'),
-  ]).then(([unormPolyfillLoaded, { bootWithToken }]) => {
+    const { bootWithToken } = await import(
+      /* webpackChunkName: 'boot-with-auth' */ './boot-with-auth'
+    );
     bootWithToken(
       () => {
         bootLoggingOut();
@@ -131,18 +162,48 @@ if (/^\/p\/[^/]+/.test(pathname)) {
           }
         });
       },
-      storedToken,
-      storedUsername
+      cookie.token,
+      cookie.email
     );
-  });
-} else {
+    return;
+  }
+
+  if (restoredAccount.accessToken) {
+    const { bootWithToken } = await import(
+      /* webpackChunkName: 'boot-with-auth' */ './boot-with-auth'
+    );
+    bootWithToken(
+      () => {
+        bootLoggingOut();
+        clearStorage().then(() => {
+          if (window.webConfig?.signout) {
+            window.webConfig.signout(forceReload);
+          } else {
+            forceReload();
+          }
+        });
+      },
+      restoredAccount.accessToken,
+      restoredAccount.username
+    );
+    return;
+  }
+
   window.addEventListener('storage', (event) => {
-    if (event.key === 'stored_user') {
+    if (
+      event.key === 'stored_user' ||
+      event.key === 'access_token' ||
+      event.key === '1txt_refresh_token' ||
+      event.key === '1txt_user_id'
+    ) {
       forceReload();
     }
   });
+
   bootWithoutAuth((token: string, username: string) => {
     saveAccount(token, username);
     window.location.pathname = '/';
   });
-}
+};
+
+void start();
