@@ -3,40 +3,12 @@ import { v4 as uuid } from 'uuid';
 import { tagHashOf } from '../../utils/tag-hash';
 import exportZipArchive from '../../utils/export';
 import { withTag } from '../../utils/tag-hash';
+import { getSupabaseClient } from '../../sync/supabase-client';
 
 import type * as A from '../action-types';
 import type * as S from '../';
 import type * as T from '../../types';
 import { numberOfNonEmailTags, openedTag } from '../selectors';
-
-const getPublicNoteApiBaseUrl = () => {
-  if (
-    typeof window !== 'undefined' &&
-    /^https?:/.test(window.location.origin)
-  ) {
-    return window.location.origin;
-  }
-
-  return config.public_web_url?.replace(/\/$/, '') || '';
-};
-
-const getStoredAccessToken = () => {
-  if (typeof window === 'undefined') return '';
-
-  const storedUserData = localStorage.getItem('stored_user');
-  if (storedUserData) {
-    try {
-      const storedUser = JSON.parse(storedUserData);
-      if (storedUser?.accessToken) {
-        return storedUser.accessToken;
-      }
-    } catch (e) {
-      // Ignore malformed legacy auth state and fall back to access_token.
-    }
-  }
-
-  return localStorage.getItem('access_token') || '';
-};
 
 const syncPublicNote = async ({
   noteId,
@@ -53,45 +25,101 @@ const syncPublicNote = async ({
   publishURL: string;
   shouldPublish: boolean;
 }) => {
-  const baseUrl = getPublicNoteApiBaseUrl();
-  if (!baseUrl) return;
+  console.log('[Publish] Starting syncPublicNote', {
+    shouldPublish,
+    publishURL,
+    noteId,
+  });
 
-  const endpoint = `${baseUrl}/api/public-notes${shouldPublish ? '' : `/${publishURL}`}`;
-  const accessToken = getStoredAccessToken();
-  const headers: Record<string, string> = {};
-
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error(
+      '[Publish] getSupabaseClient() returned null — check SUPABASE_URL / SUPABASE_KEY config'
+    );
+    throw new Error('Supabase client is not configured');
   }
+  console.log('[Publish] Supabase client OK');
 
   if (shouldPublish) {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        ...headers,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    console.log('[Publish] Fetching user from auth...');
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('[Publish] auth.getUser() error:', userError);
+      throw userError;
+    }
+    if (!user) {
+      console.error('[Publish] auth.getUser() returned null user');
+      throw new Error('Not authenticated');
+    }
+    console.log('[Publish] User OK:', user.id);
+
+    console.log('[Publish] Upserting public_notes...');
+    const { error } = await supabase.from('public_notes').upsert(
+      {
         id: publishURL,
-        noteId,
+        user_id: user.id,
+        note_id: noteId,
         title,
         content,
-        updatedAt,
-      }),
-    });
-    if (!response.ok) {
-      throw new Error(await response.text());
+        updated_at: updatedAt,
+      },
+      { onConflict: 'id' }
+    );
+    if (error) {
+      console.error('[Publish] upsert error:', error);
+      throw error;
     }
+    console.log('[Publish] upsert success');
     return;
   }
 
-  const response = await fetch(endpoint, {
-    method: 'DELETE',
-    headers,
-  });
-  if (!response.ok) {
-    throw new Error(await response.text());
+  console.log('[Publish] Deleting public note...');
+  const { error } = await supabase
+    .from('public_notes')
+    .delete()
+    .eq('id', publishURL);
+  if (error) {
+    console.error('[Publish] delete error:', error);
+    throw error;
   }
+  console.log('[Publish] delete success');
+};
+
+const pendingPublishSyncs = new Map<string, ReturnType<typeof setTimeout>>();
+
+const schedulePublishSync = (
+  store: S.Store,
+  noteId: T.EntityId,
+  delay = 2000
+) => {
+  const existing = pendingPublishSyncs.get(noteId);
+  if (existing) clearTimeout(existing);
+
+  pendingPublishSyncs.set(
+    noteId,
+    setTimeout(() => {
+      pendingPublishSyncs.delete(noteId);
+      const note = store.getState().data.notes.get(noteId);
+      if (!note?.publishURL || !note.systemTags.includes('published')) return;
+
+      void syncPublicNote({
+        noteId,
+        title: note.content.split('\n')[0] || 'Untitled',
+        content: note.content,
+        updatedAt: new Date(note.modificationDate * 1000).toISOString(),
+        publishURL: note.publishURL,
+        shouldPublish: true,
+      }).catch((error) => {
+        console.error(
+          '[Publish] Debounced sync failed:',
+          (error as Error).message
+        );
+      });
+    }, delay)
+  );
 };
 
 export const middleware: S.Middleware =
@@ -167,6 +195,45 @@ export const middleware: S.Middleware =
           note: action.note,
         });
 
+      case 'EDIT_NOTE': {
+        const editNote = state.data.notes.get(action.noteId);
+        if (editNote?.publishURL && editNote.systemTags.includes('published')) {
+          schedulePublishSync(store, action.noteId);
+        }
+        return next(action);
+      }
+
+      case 'OPEN_NOTE':
+      case 'SELECT_NOTE': {
+        // Before opening the new note, sync the currently-open note
+        // to Supabase if it's published — keeps the public copy up to date.
+        const leavingNoteId = state.ui.openedNote;
+        if (leavingNoteId && leavingNoteId !== action.noteId) {
+          const leavingNote = state.data.notes.get(leavingNoteId);
+          if (
+            leavingNote?.publishURL &&
+            leavingNote.systemTags.includes('published')
+          ) {
+            void syncPublicNote({
+              noteId: leavingNoteId,
+              title: leavingNote.content.split('\n')[0] || 'Untitled',
+              content: leavingNote.content,
+              updatedAt: new Date(
+                leavingNote.modificationDate * 1000
+              ).toISOString(),
+              publishURL: leavingNote.publishURL,
+              shouldPublish: true,
+            }).catch((error) => {
+              console.error(
+                '[Publish] Auto-sync failed:',
+                (error as Error).message
+              );
+            });
+          }
+        }
+        return next(action);
+      }
+
       case 'RESTORE_OPEN_NOTE':
         if (!state.ui.openedNote) {
           return;
@@ -204,7 +271,11 @@ export const middleware: S.Middleware =
             publishURL: syncPublishURL,
             shouldPublish: action.shouldPublish,
           }).catch((error) => {
-            console.error('[Publish] Sync failed:', error);
+            console.error('[Publish] Sync failed:', {
+              message: (error as Error).message,
+              shouldPublish: action.shouldPublish,
+              publishURL: syncPublishURL,
+            });
             if (action.shouldPublish) {
               store.dispatch({
                 ...action,

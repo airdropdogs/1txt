@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { render } from 'react-dom';
+import { getSupabaseClient } from './sync/supabase-client';
+import { renderNoteToHtml } from './utils/render-note-to-html';
 import './public-note-page.scss';
 
 type PublicNote = {
@@ -11,23 +13,43 @@ type PublicNote = {
 
 const PublicNotePage = ({ noteId }: { noteId: string }) => {
   const [note, setNote] = useState<PublicNote | null>(null);
+  const [html, setHtml] = useState('');
   const [error, setError] = useState<string>('');
   const [loading, setLoading] = useState(true);
-
-  const apiUrl = useMemo(() => `/api/public-notes/${noteId}`, [noteId]);
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error('Public note not found');
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+          throw new Error('Supabase is not configured');
         }
-        const data = (await response.json()) as PublicNote;
+
+        const { data, error: queryError } = await supabase
+          .from('public_notes')
+          .select('id,title,content,updated_at')
+          .or(`id.eq.${noteId},note_id.eq.${noteId}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (queryError) throw queryError;
+        if (!data) throw new Error('Public note not found');
+        if (cancelled) return;
+
+        const noteData: PublicNote = {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          updatedAt: data.updated_at,
+        };
+
+        const renderedHtml = await renderNoteToHtml(data.content || '');
+
         if (!cancelled) {
-          setNote(data);
+          setNote(noteData);
+          setHtml(renderedHtml);
         }
       } catch (e: any) {
         if (!cancelled) {
@@ -44,7 +66,7 @@ const PublicNotePage = ({ noteId }: { noteId: string }) => {
     return () => {
       cancelled = true;
     };
-  }, [apiUrl]);
+  }, [noteId]);
 
   if (loading) {
     return (
@@ -80,7 +102,10 @@ const PublicNotePage = ({ noteId }: { noteId: string }) => {
         <div className="public-note-page__meta">
           {note.updatedAt ? `Updated ${note.updatedAt}` : null}
         </div>
-        <pre className="public-note-page__body">{note.content || ''}</pre>
+        <div
+          className="public-note-page__body"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </main>
     </div>
   );

@@ -94,6 +94,9 @@ module.exports = () => {
       }),
     },
     // target: 'browserslist', // this seems like it should be "node" or "electron-renderer" but those both crash
+    devServer: {
+      historyApiFallback: true,
+    },
     module: {
       rules: [
         {

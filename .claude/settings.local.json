@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\www\\\\simplenote-electron\\\\simplenote-electron\" -Depth 1 -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "Bash(Select-Object -Last 30)",
+      "Bash(netstat -ano)"
+    ]
+  }
+}

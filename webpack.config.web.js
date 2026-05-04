@@ -34,7 +34,13 @@ module.exports = (env, argv) => {
     devServer: {
       ...(baseConfig.devServer || {}),
       historyApiFallback: true,
-      port: 4003,
+      port: 4000,
+      proxy: {
+        '/api': {
+          target: 'https://1txt.xyz',
+          changeOrigin: true,
+        },
+      },
     },
   };
 };

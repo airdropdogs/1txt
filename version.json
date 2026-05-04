@@ -1,8 +1,8 @@
 {
-  "version": "1.0.7",
+  "version": "1.0.8",
   "downloadPageUrl": "https://github.com/airdropdogs/1txt/releases/latest",
   "webAppUrl": "https://1txt.xyz",
-  "releaseNotes": "BOOS key.\n\nSee RELEASE-NOTES.md.",
-  "minSupportedVersion": "1.0.7",
+  "releaseNotes": "Publish 202605041209.\n\nSee RELEASE-NOTES.md.",
+  "minSupportedVersion": "1.0.8",
   "force": false
 }

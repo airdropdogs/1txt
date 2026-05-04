@@ -162,7 +162,7 @@ export const notes: A.Reducer<Map<T.EntityId, T.Note>> = (
         ? action.publishURL ||
           note.publishURL ||
           (action.noteId as unknown as string)
-        : '';
+        : note.publishURL;
 
       return new Map(state).set(
         action.noteId,

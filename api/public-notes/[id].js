@@ -35,35 +35,19 @@ module.exports = async (req, res) => {
   const id = (req.query.id || req.url.split('/').pop() || '').split('?')[0];
 
   if (req.method === 'GET') {
-    let query = client
+    const { data, error } = await client
       .from(tableName)
       .select('id,title,content,updated_at,revoked')
       .eq('revoked', false)
       .or(`id.eq.${id},note_id.eq.${id}`)
-      .limit(1);
-
-    let { data, error } = await query.maybeSingle();
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       return res.status(500).json({ error: error.message });
     }
 
     if (!data) {
-      const fallback = await client
-        .from(tableName)
-        .select('id,title,content,updated_at,revoked')
-        .or(`id.eq.${id},note_id.eq.${id}`)
-        .limit(1)
-        .maybeSingle();
-      data = fallback.data;
-      error = fallback.error;
-    }
-
-    if (error) {
-      return res.status(500).json({ error: error.message });
-    }
-
-    if (!data || data.revoked) {
       return res.status(404).json({ error: 'Public note not found' });
     }
 
