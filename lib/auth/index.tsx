@@ -196,7 +196,14 @@ export class Auth extends Component<Props> {
           <div className="terms">
             We&rsquo;ll email you a one-time code to log in.
             <br />
-            No password needed.
+            <a
+              href="https://github.com/airdropdogs/1txt/releases/latest"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'inherit', textDecoration: 'underline' }}
+            >
+              Desktop App for Windows &darr;
+            </a>
           </div>
         </form>
       </div>

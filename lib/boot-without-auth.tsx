@@ -1,11 +1,8 @@
 import React, { Component } from 'react';
 import { render } from 'react-dom';
 import { Auth as AuthApp } from './auth';
-import { getSupabaseClient } from './sync/supabase-client';
-import { recordEvent } from './state/analytics/middleware';
 import Modal from 'react-modal';
 import classNames from 'classnames';
-import AboutDialog from './dialogs/about';
 import ErrorBoundary from './error-boundary';
 import Spinner from './components/spinner';
 import { isElectron, isMac } from './utils/platform';
@@ -36,9 +33,12 @@ type State = {
   showAbout: boolean;
 };
 
-// Reuse the singleton client so we don't trigger
-// "Multiple GoTrueClient instances detected" with the sync layer.
-const supabase = getSupabaseClient();
+const AboutDialog = React.lazy(() => import('./dialogs/about'));
+
+const ensureSupabase = async () => {
+  const { getSupabaseClient } = await import('./sync/supabase-client');
+  return getSupabaseClient();
+};
 
 class AppWithoutAuth extends Component<Props, State> {
   state: State = {
@@ -88,6 +88,7 @@ class AppWithoutAuth extends Component<Props, State> {
 
     this.setState({ authStatus: 'submitting' }, async () => {
       try {
+        const supabase = await ensureSupabase();
         if (!supabase) throw new Error('No Supabase config');
         const { data, error } = await supabase.auth.signInWithPassword({
           email: username,
@@ -129,12 +130,15 @@ class AppWithoutAuth extends Component<Props, State> {
 
     this.setState({ authStatus: 'submitting' }, async () => {
       try {
+        const supabase = await ensureSupabase();
         if (!supabase) throw new Error('No Supabase config');
         const { error } = await supabase.auth.signInWithOtp({
           email: username,
         });
         if (error) throw error;
-        recordEvent('user_requested_login_link');
+        import('./state/analytics/middleware').then((m) =>
+          m.recordEvent('user_requested_login_link')
+        );
         this.setState({
           authStatus: 'login-requested',
           emailSentTo: username,
@@ -163,6 +167,7 @@ class AppWithoutAuth extends Component<Props, State> {
 
     this.setState({ authStatus: 'completing-login' }, async () => {
       try {
+        const supabase = await ensureSupabase();
         if (!supabase) throw new Error('No Supabase config');
         const { data, error } = await supabase.auth.verifyOtp({
           email: username,
@@ -276,17 +281,19 @@ class AppWithoutAuth extends Component<Props, State> {
             requestSignup={this.requestSignup}
           />
           {this.state.showAbout && (
-            <Modal
-              key="aboutDialogModal"
-              className="dialog-renderer__content"
-              contentLabel=""
-              isOpen
-              onRequestClose={this.onDismissDialog}
-              overlayClassName="dialog-renderer__overlay"
-              portalClassName={classNames('dialog-renderer__portal')}
-            >
-              <AboutDialog key="about" closeDialog={this.onDismissDialog} />
-            </Modal>
+            <React.Suspense fallback={null}>
+              <Modal
+                key="aboutDialogModal"
+                className="dialog-renderer__content"
+                contentLabel=""
+                isOpen
+                onRequestClose={this.onDismissDialog}
+                overlayClassName="dialog-renderer__overlay"
+                portalClassName={classNames('dialog-renderer__portal')}
+              >
+                <AboutDialog key="about" closeDialog={this.onDismissDialog} />
+              </Modal>
+            </React.Suspense>
           )}
         </ErrorBoundary>
       </div>

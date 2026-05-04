@@ -42,27 +42,31 @@ import * as T from '../types';
 
 const SEEDED_FLAG_KEY = '1txt:welcome-note-seeded';
 
-export const WELCOME_NOTE_CONTENT = `# Welcome to 1TXT 👋
+export const WELCOME_NOTE_CONTENT = `## Welcome to 1TXT
 
-1TXT is a fast, Markdown-first note app that keeps your notes in sync
-across your devices.
+1TXT is a minimalist, markdown-standard note-taking application that supports
+synchronization across different devices.
 
-Feel free to edit, rename, or delete this note — it is a regular note
-like any other.
+## Get Started
 
-## Getting started
+- **Switch Views**
+  - Use the \`</>\` (Source Code) and \`Aa\` (WYSIWYG) buttons
+    in the top right toolbar.
+- **Insert Markdown Formatting**
+  - Click the **MI** label to quickly get example content (including
+    headings, lists, links, code blocks, etc.).
+- **Tags**
+  - Add a tag in the "Add tag…" field at the bottom.
+  - Click a tag later to filter notes by that tag.
+  - You can also find tags via search or the menu.
+  - Use **tags** instead of folders to keep things minimal and flat.
+- **Publish**
+  - Click **publish** in the top right menu to share your note
+    with anyone.
+  - Demo: [The Story of 1txt](/p/a14ce330-161f-4125-9f00-1461ded6c8ae)
 
-- **New note** — press \`Ctrl + Shift + I\`.
-- **Switch view** — use the \`</>\` (source) and \`Aa\` (WYSIWYG) buttons
-  in the top-right toolbar.
-- **Insert Markdown** — click the M↓ badge for quick snippets (headings,
-  lists, links, code blocks, …).
-- **Tag a note** — type in the "Add a tag…" field at the bottom. Click a
-  chip later to filter by that tag, or hover for the × to remove it.
-- **Find anything** — start typing in the search box at the top of the
-  note list, or use \`tag:work\` to filter by tag.
-
-Happy writing!
+> Happy Writing!
+> Official Website: [1txt.xyz](https://1txt.xyz)
 `;
 
 type SeedOptions = {

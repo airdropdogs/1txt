@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { render } from 'react-dom';
-import { getSupabaseClient } from './sync/supabase-client';
 import { renderNoteToHtml } from './utils/render-note-to-html';
 import './public-note-page.scss';
+
+const ensureSupabase = async () => {
+  const { getSupabaseClient } = await import('./sync/supabase-client');
+  return getSupabaseClient();
+};
 
 type PublicNote = {
   id: string;
@@ -22,7 +26,7 @@ const PublicNotePage = ({ noteId }: { noteId: string }) => {
 
     const load = async () => {
       try {
-        const supabase = getSupabaseClient();
+        const supabase = await ensureSupabase();
         if (!supabase) {
           throw new Error('Supabase is not configured');
         }
@@ -98,10 +102,6 @@ const PublicNotePage = ({ noteId }: { noteId: string }) => {
   return (
     <div className="app public-note-page">
       <main className="public-note-page__content">
-        <h1 className="public-note-page__title">{note.title || 'Untitled'}</h1>
-        <div className="public-note-page__meta">
-          {note.updatedAt ? `Updated ${note.updatedAt}` : null}
-        </div>
         <div
           className="public-note-page__body"
           dangerouslySetInnerHTML={{ __html: html }}
