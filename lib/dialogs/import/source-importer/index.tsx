@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import ImporterDropzone from '../dropzone';
 import TransitionFadeInOut from '../../../components/transition-fade-in-out';
 import ImportExecutor from './executor';
+import { t } from '../../../i18n';
 
 class SourceImporter extends React.Component {
   static propTypes = {
@@ -51,7 +52,7 @@ class SourceImporter extends React.Component {
             type="button"
             disabled={true}
           >
-            Import
+            {t('import.importButton')}
           </button>
         </div>
 

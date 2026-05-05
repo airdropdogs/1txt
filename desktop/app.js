@@ -16,6 +16,7 @@ const windowStateKeeper = require('electron-window-state');
 
 const config = require('./config');
 const createMenuTemplate = require('./menus');
+const i18n = require('./i18n');
 const importNotes = require('./evernote-import');
 const platform = require('./detect/platform');
 const updater = require('./updater');
@@ -221,6 +222,7 @@ module.exports = function main() {
     }
 
     // Configure and set the application menu
+    i18n.setLocale('system');
     const menuTemplate = createMenuTemplate();
     const appMenu = Menu.buildFromTemplate(menuTemplate, mainWindow);
     Menu.setApplicationMenu(appMenu);
@@ -229,6 +231,9 @@ module.exports = function main() {
     ipcMain.on('appStateUpdate', function (event, args) {
       const settings = args['settings'] || {};
       isAuthenticated = settings && 'accountName' in settings;
+      if (settings.locale) {
+        i18n.setLocale(settings.locale);
+      }
       Menu.setApplicationMenu(
         Menu.buildFromTemplate(createMenuTemplate(args), mainWindow)
       );

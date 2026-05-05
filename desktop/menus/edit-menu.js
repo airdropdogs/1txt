@@ -1,4 +1,5 @@
 const { appCommandSender, editorCommandSender } = require('./utils');
+const { t } = require('../i18n');
 
 const buildEditMenu = (settings, isAuthenticated, editMode) => {
   settings = settings || {};
@@ -6,19 +7,19 @@ const buildEditMenu = (settings, isAuthenticated, editMode) => {
   editMode = editMode || false;
 
   let undo = {
-    label: '&Undo',
+    label: t('menu.edit.undo'),
     click: editorCommandSender({ action: 'undo' }),
     accelerator: 'CommandOrControl+Z',
     visible: editMode,
   };
   let redo = {
-    label: '&Redo',
+    label: t('menu.edit.redo'),
     click: editorCommandSender({ action: 'redo' }),
     accelerator: 'CommandOrControl+Shift+Z',
     visible: editMode,
   };
   let selectAll = {
-    label: '&Select All',
+    label: t('menu.edit.selectAll'),
     click: editorCommandSender({ action: 'selectAll' }),
     accelerator: 'CommandOrControl+A',
   };
@@ -44,22 +45,22 @@ const buildEditMenu = (settings, isAuthenticated, editMode) => {
     authenticatedMenuOptions = [
       { type: 'separator' },
       {
-        label: '&Trash Note',
+        label: t('menu.edit.trashNote'),
         click: appCommandSender({ action: 'trashNote' }),
       },
       { type: 'separator' },
       {
-        label: 'Search &Notes…',
+        label: t('menu.edit.searchNotes'),
         click: appCommandSender({ action: 'focusSearchField' }),
         accelerator: 'CommandOrControl+Shift+S',
       },
       {
-        label: '&Find in Note',
+        label: t('menu.edit.findInNote'),
         click: appCommandSender({ action: 'focusSearchField' }),
         accelerator: 'CommandOrControl+F',
       },
       {
-        label: 'Find A&gain',
+        label: t('menu.edit.findAgain'),
         click: editorCommandSender({ action: 'findAgain' }),
         accelerator: 'CommandOrControl+G',
       },
@@ -68,15 +69,15 @@ const buildEditMenu = (settings, isAuthenticated, editMode) => {
 
   const defaultSubmenuAdditions = [
     {
-      label: '&Cut',
+      label: t('menu.edit.cut'),
       role: 'cut',
     },
     {
-      label: 'C&opy',
+      label: t('menu.edit.copy'),
       role: 'copy',
     },
     {
-      label: '&Paste',
+      label: t('menu.edit.paste'),
       role: 'paste',
     },
     selectAll,
@@ -88,7 +89,7 @@ const buildEditMenu = (settings, isAuthenticated, editMode) => {
     .concat(authenticatedMenuOptions);
 
   const fileMenu = {
-    label: '&Edit',
+    label: t('menu.edit.title'),
     submenu,
   };
 

@@ -1,11 +1,12 @@
 const { editorCommandSender } = require('./utils');
+const { t } = require('../i18n');
 
 const buildFormatMenu = (isAuthenticated, editMode) => {
   isAuthenticated = isAuthenticated || false;
   editMode = editMode || false;
   const submenu = [
     {
-      label: 'Insert &Checklist',
+      label: t('menu.format.insertChecklist'),
       accelerator: 'CommandOrControl+Shift+C',
       click: editorCommandSender({ action: 'insertChecklist' }),
       enabled: editMode,
@@ -13,7 +14,7 @@ const buildFormatMenu = (isAuthenticated, editMode) => {
   ];
 
   const formatMenu = {
-    label: 'F&ormat',
+    label: t('menu.format.title'),
     submenu,
   };
 

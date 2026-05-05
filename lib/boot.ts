@@ -9,6 +9,24 @@ import { boot as bootWithoutAuth } from './boot-without-auth';
 import { boot as bootLoggingOut } from './logging-out';
 import { isElectron } from './utils/platform';
 import bootPublicNotePage from './public-note-page.tsx';
+import { setLocale } from './i18n';
+
+// Initialize locale as early as possible from persisted settings.
+// The settings slice is persisted under the 'simpleNote' key by redux-localstorage.
+try {
+  const raw = localStorage.getItem('simpleNote');
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed.settings?.locale) {
+      setLocale(parsed.settings.locale);
+    }
+  } else {
+    // First run: follow the system language (default Redux behavior).
+    setLocale('system');
+  }
+} catch (_) {
+  setLocale('system');
+}
 
 const pathname = window.location.pathname;
 const isPublicNotePage = /^\/p\/[^/]+/.test(pathname);

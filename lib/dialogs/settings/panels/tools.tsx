@@ -8,6 +8,7 @@ import React, {
 import { connect } from 'react-redux';
 
 import actions from '../../../state/actions';
+import { t } from '../../../i18n';
 import PanelTitle from '../../../components/panel-title';
 import ButtonGroup from '../../button-group';
 import SettingsGroup, { Item } from '../../settings-group';
@@ -210,12 +211,12 @@ const ToolsPanel: FunctionComponent<Props> = ({
 
     const shortcut = eventToShortcut(event);
     if (!shortcut) {
-      setBossKeyError('请按下“修饰键 + 普通键”，例如 Alt+1。');
+      setBossKeyError(t('settings.tools.bossKeyErrorNoModifier'));
       return;
     }
 
     if (isBossShortcutConflict(shortcut)) {
-      setBossKeyError('该快捷键与现有快捷键冲突，请换一个组合。');
+      setBossKeyError(t('settings.tools.bossKeyErrorConflict'));
       return;
     }
 
@@ -233,15 +234,15 @@ const ToolsPanel: FunctionComponent<Props> = ({
   return (
     <Fragment>
       <div className="settings-tools">
-        <PanelTitle headingLevel={3}>Tools</PanelTitle>
+        <PanelTitle headingLevel={3}>{t('settings.tools.title')}</PanelTitle>
         <ButtonGroup
           items={[
             {
-              name: 'Import Notes',
+              name: t('settings.tools.importNotes'),
               slug: 'import',
             },
             {
-              name: 'Export Notes',
+              name: t('settings.tools.exportNotes'),
               slug: 'export',
             },
           ]}
@@ -254,22 +255,27 @@ const ToolsPanel: FunctionComponent<Props> = ({
         onChange={toggleShortcuts}
         renderer={ToggleGroup}
       >
-        <Item title="Keyboard Shortcuts" slug="keyboardShortcuts" />
+        <Item
+          title={t('settings.tools.keyboardShortcuts')}
+          slug="keyboardShortcuts"
+        />
       </SettingsGroup>
 
       <div className="settings-group">
-        <PanelTitle headingLevel={3}>Boss Key</PanelTitle>
+        <PanelTitle headingLevel={3}>{t('settings.tools.bossKey')}</PanelTitle>
         <div className="settings-items">
           <label
             className="settings-item"
             htmlFor="settings-field-boss-key-shortcut"
           >
-            <div className="settings-item-label">Shortcut</div>
+            <div className="settings-item-label">
+              {t('settings.tools.shortcut')}
+            </div>
             <div className="settings-item-control settings-item-control--inline">
               <input
                 id="settings-field-boss-key-shortcut"
                 className="settings-item-text-input transparent-input settings-item-text-input--shortcut"
-                placeholder="Press shortcut"
+                placeholder={t('settings.tools.pressShortcut')}
                 value={bossKeyValue}
                 onKeyDown={onCaptureBossShortcut}
                 onFocus={(event) => event.currentTarget.select()}
@@ -281,15 +287,12 @@ const ToolsPanel: FunctionComponent<Props> = ({
                 className="button button-borderless"
                 onClick={onResetBossShortcut}
               >
-                Reset
+                {t('settings.tools.reset')}
               </button>
             </div>
           </label>
         </div>
-        <p className="settings-hint">
-          Press the shortcut directly in the input. Boss Key toggles hide/show
-          and restores window to front.
-        </p>
+        <p className="settings-hint">{t('settings.tools.bossKeyHint')}</p>
         {bossKeyError && <p className="settings-error">{bossKeyError}</p>}
       </div>
 
@@ -299,7 +302,10 @@ const ToolsPanel: FunctionComponent<Props> = ({
         onChange={() => requestNotifications(!sendNotifications)}
         renderer={ToggleGroup}
       >
-        <Item title="Notify on remote changes" slug="allowNotifications" />
+        <Item
+          title={t('settings.tools.notifyOnChanges')}
+          slug="allowNotifications"
+        />
       </SettingsGroup>
     </Fragment>
   );

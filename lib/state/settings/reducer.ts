@@ -166,6 +166,15 @@ const theme: A.Reducer<T.Theme> = (state = 'system', action) => {
   }
 };
 
+const locale: A.Reducer<string> = (state = 'system', action) => {
+  switch (action.type) {
+    case 'SETTINGS_CHANGE_LOCALE':
+      return action.locale;
+    default:
+      return state;
+  }
+};
+
 export default combineReducers({
   accountName,
   autoHideMenuBar,
@@ -182,4 +191,5 @@ export default combineReducers({
   showPreviewButton,
   spellCheckEnabled,
   theme,
+  locale,
 });

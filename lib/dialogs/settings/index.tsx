@@ -9,8 +9,7 @@ import DisplayPanel from './panels/display';
 import ToolsPanel from './panels/tools';
 
 import { closeDialog } from '../../state/ui/actions';
-
-const settingTabs = ['account', 'display', 'tools'];
+import { t } from '../../i18n';
 
 type DispatchProps = {
   closeDialog: () => any;
@@ -19,8 +18,14 @@ type DispatchProps = {
 type Props = DispatchProps;
 
 export const SettingsDialog: FunctionComponent<Props> = ({ closeDialog }) => (
-  <Dialog className="settings" title="Settings" onDone={closeDialog}>
-    <TabPanels tabNames={settingTabs}>
+  <Dialog className="settings" title={t('settings.title')} onDone={closeDialog}>
+    <TabPanels
+      tabNames={[
+        t('settings.tabAccount'),
+        t('settings.tabDisplay'),
+        t('settings.tabTools'),
+      ]}
+    >
       <AccountPanel />
       <DisplayPanel />
       <ToolsPanel />

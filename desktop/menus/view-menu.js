@@ -1,5 +1,6 @@
 const { buildRadioGroup, appCommandSender } = require('./utils');
 const platform = require('../detect/platform');
+const { t } = require('../i18n');
 
 const minimizeWithBossKey = (item, focusedWindow) => {
   if (focusedWindow) {
@@ -14,36 +15,36 @@ const buildViewMenu = (settings, isAuthenticated) => {
   const themeSubMenu = [];
   if (!platform.isLinux()) {
     themeSubMenu.push({
-      label: '&System',
+      label: t('menu.view.system'),
       id: 'system',
     });
   }
   themeSubMenu.push({
-    label: '&Light',
+    label: t('menu.view.light'),
     id: 'light',
   });
   themeSubMenu.push({
-    label: '&Dark',
+    label: t('menu.view.dark'),
     id: 'dark',
   });
 
   const menu = {
-    label: '&View',
+    label: t('menu.view.title'),
     submenu: [
       {
-        label: '&Sort Type',
+        label: t('menu.view.sortType'),
         visible: isAuthenticated,
         submenu: [
           {
-            label: 'Date &modified',
+            label: t('menu.view.dateModified'),
             id: 'modificationDate',
           },
           {
-            label: 'Date &created',
+            label: t('menu.view.dateCreated'),
             id: 'creationDate',
           },
           {
-            label: '&Alphabetical',
+            label: t('menu.view.alphabetical'),
             id: 'alphabetical',
           },
         ]
@@ -59,7 +60,7 @@ const buildViewMenu = (settings, isAuthenticated) => {
               type: 'separator',
             },
             {
-              label: '&Reversed',
+              label: t('menu.view.reversed'),
               type: 'checkbox',
               checked: settings.sortReversed,
               click: appCommandSender({
@@ -69,19 +70,19 @@ const buildViewMenu = (settings, isAuthenticated) => {
           ]),
       },
       {
-        label: '&Note Display',
+        label: t('menu.view.noteDisplay'),
         visible: isAuthenticated,
         submenu: [
           {
-            label: '&Comfy',
+            label: t('menu.view.comfy'),
             id: 'comfy',
           },
           {
-            label: 'C&ondensed',
+            label: t('menu.view.condensed'),
             id: 'condensed',
           },
           {
-            label: '&Expanded',
+            label: t('menu.view.expanded'),
             id: 'expanded',
           },
         ].map(
@@ -93,15 +94,15 @@ const buildViewMenu = (settings, isAuthenticated) => {
         ),
       },
       {
-        label: '&Line Length',
+        label: t('menu.view.lineLength'),
         visible: isAuthenticated,
         submenu: [
           {
-            label: '&Narrow',
+            label: t('menu.view.narrow'),
             id: 'narrow',
           },
           {
-            label: '&Full',
+            label: t('menu.view.full'),
             id: 'full',
           },
         ].map(
@@ -113,11 +114,11 @@ const buildViewMenu = (settings, isAuthenticated) => {
         ),
       },
       {
-        label: '&Tags',
+        label: t('menu.view.tags'),
         visible: isAuthenticated,
         submenu: [
           {
-            label: '&Sort Alphabetically',
+            label: t('menu.view.sortAlphabetically'),
             type: 'checkbox',
             checked: settings.sortTagsAlpha,
             click: appCommandSender({
@@ -127,7 +128,7 @@ const buildViewMenu = (settings, isAuthenticated) => {
         ],
       },
       {
-        label: 'T&heme',
+        label: t('menu.view.theme'),
         visible: isAuthenticated,
         submenu: themeSubMenu.map(
           buildRadioGroup({
@@ -179,7 +180,7 @@ const buildViewMenu = (settings, isAuthenticated) => {
 
       ...(isAuthenticated ? [{ type: 'separator' }] : []),
       {
-        label: 'Focus Mode',
+        label: t('menu.view.focusMode'),
         visible: isAuthenticated,
         accelerator: 'CommandOrControl+Shift+F',
         type: 'checkbox',
@@ -187,7 +188,7 @@ const buildViewMenu = (settings, isAuthenticated) => {
         click: appCommandSender({ action: 'toggleFocusMode' }),
       },
       {
-        label: 'Boss Key',
+        label: t('menu.view.bossKey'),
         visible: isAuthenticated,
         accelerator: settings.bossKeyShortcut || 'Alt+1',
         registerAccelerator: false,
@@ -197,7 +198,7 @@ const buildViewMenu = (settings, isAuthenticated) => {
         type: 'separator',
       },
       {
-        label: 'Toggle &Full Screen',
+        label: t('menu.view.toggleFullScreen'),
         accelerator: platform.isOSX() ? 'Ctrl+Command+F' : 'F11',
         click(item, focusedWindow) {
           if (focusedWindow) {

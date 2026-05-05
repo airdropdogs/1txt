@@ -1,5 +1,6 @@
 import * as A from '../action-types';
 import * as T from '../../types';
+import { setLocale } from '../../i18n';
 
 export const activateTheme: A.ActionCreator<A.SetTheme> = (theme: T.Theme) => ({
   type: 'setTheme',
@@ -78,3 +79,11 @@ export const setBossKeyShortcut: A.ActionCreator<A.SetBossKeyShortcut> = (
   type: 'SET_BOSS_KEY_SHORTCUT',
   bossKeyShortcut,
 });
+
+export const changeLocale: A.ActionCreator<A.SetLocale> = (locale: string) => {
+  setLocale(locale);
+  return {
+    type: 'SETTINGS_CHANGE_LOCALE',
+    locale,
+  };
+};

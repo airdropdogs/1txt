@@ -57,6 +57,8 @@ export type SetBossKeyShortcut = Action<
   { bossKeyShortcut: string }
 >;
 
+export type SetLocale = Action<'SETTINGS_CHANGE_LOCALE', { locale: string }>;
+
 /*
  * Normal action types
  */
@@ -424,6 +426,7 @@ export type ActionType =
   | SetSystemTag
   | SetTheme
   | SetBossKeyShortcut
+  | SetLocale
   | TogglePreviewButton
   | SetUnsyncedNoteIds
   | ShowAllNotes

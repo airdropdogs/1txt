@@ -1,10 +1,11 @@
 .public-note-page {
-  min-height: 100vh;
+  height: 100vh;
   background: var(--background-color, #f6f7fb);
   display: flex;
   justify-content: center;
   padding: 48px 20px;
   user-select: text;
+  overflow-y: auto;
 }
 
 .public-note-page__content {

@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import Dialog from '../../dialog';
 import { closeDialog as closeDialogAction } from '../../state/ui/actions';
 import { CmdOrCtrl, isElectron } from '../../utils/platform';
+import { t } from '../../i18n';
 
 import * as S from '../../state';
 
@@ -67,117 +68,135 @@ export class AboutDialog extends Component<Props> {
 
     return (
       <div className="keybindings">
-        <Dialog onDone={closeDialog} title="Keyboard Shortcuts">
+        <Dialog onDone={closeDialog} title={t('keybindings.title')}>
           <div className="keybindings__sections">
             <section>
-              <h1>View</h1>
+              <h1>{t('keybindings.view')}</h1>
               <ul>
                 <li>
-                  <Keys keys={[CmdOrCtrl, '/']}>Show keyboard shortcuts</Keys>
+                  <Keys keys={[CmdOrCtrl, '/']}>
+                    {t('keybindings.showShortcuts')}
+                  </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'F']}>
-                    Toggle focus mode
+                    {t('keybindings.toggleFocusMode')}
                   </Keys>
                 </li>
                 {isElectron && (
                   <li>
-                    <Keys keys={bossKeyDisplay}>Boss key</Keys>
+                    <Keys keys={bossKeyDisplay}>
+                      {t('keybindings.bossKey')}
+                    </Keys>
                   </li>
                 )}
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'S']}>
-                    Focus search field
+                    {t('keybindings.focusSearch')}
                   </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'G']}>
-                    Jump to next match in note
+                    {t('keybindings.jumpNextMatch')}
                   </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'G']}>
-                    Jump to previous match in note
+                    {t('keybindings.jumpPrevMatch')}
                   </Keys>
                 </li>
                 {isElectron && (
                   <li>
-                    <Keys keys={[CmdOrCtrl, '+']}>Increase font size</Keys>
+                    <Keys keys={[CmdOrCtrl, '+']}>
+                      {t('keybindings.increaseFont')}
+                    </Keys>
                   </li>
                 )}
                 {isElectron && (
                   <li>
-                    <Keys keys={[CmdOrCtrl, '-']}>Decrease font size</Keys>
+                    <Keys keys={[CmdOrCtrl, '-']}>
+                      {t('keybindings.decreaseFont')}
+                    </Keys>
                   </li>
                 )}
                 {isElectron && (
                   <li>
-                    <Keys keys={[CmdOrCtrl, '0']}>Reset font size</Keys>
+                    <Keys keys={[CmdOrCtrl, '0']}>
+                      {t('keybindings.resetFont')}
+                    </Keys>
                   </li>
                 )}
               </ul>
             </section>
 
             <section>
-              <h1>Navigation</h1>
+              <h1>{t('keybindings.navigation')}</h1>
               <ul>
                 {isElectron && (
                   <li>
-                    <Keys keys={[CmdOrCtrl, ',']}>Open app preferences</Keys>
+                    <Keys keys={[CmdOrCtrl, ',']}>
+                      {t('keybindings.openPreferences')}
+                    </Keys>
                   </li>
                 )}
                 {isElectron && (
                   <li>
                     <Keys keys={[CmdOrCtrl, 'Shift', 'E']}>
-                      Export all notes
+                      {t('keybindings.exportAllNotes')}
                     </Keys>
                   </li>
                 )}
                 <li>
-                  <Keys keys={[CmdOrCtrl, 'Shift', 'U']}>Toggle tag list</Keys>
+                  <Keys keys={[CmdOrCtrl, 'Shift', 'U']}>
+                    {t('keybindings.toggleTagList')}
+                  </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'K']}>
-                    Open note above current one
+                    {t('keybindings.openNoteAbove')}
                   </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'J']}>
-                    Open note below current one
+                    {t('keybindings.openNoteBelow')}
                   </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'Y']}>
-                    Toggle editing content/tags
+                    {t('keybindings.toggleEditTags')}
                   </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'L']}>
-                    Toggle note list (on narrow screens)
+                    {t('keybindings.toggleNoteList')}
                   </Keys>
                 </li>
               </ul>
             </section>
 
             <section>
-              <h1>Note Editing</h1>
+              <h1>{t('keybindings.noteEditing')}</h1>
               <ul>
                 <li>
-                  <Keys keys={[CmdOrCtrl, 'Shift', 'I']}>Create new note</Keys>
+                  <Keys keys={[CmdOrCtrl, 'Shift', 'I']}>
+                    {t('keybindings.createNewNote')}
+                  </Keys>
                 </li>
                 {isElectron && (
                   <li>
-                    <Keys keys={[CmdOrCtrl, 'P']}>Print note</Keys>
+                    <Keys keys={[CmdOrCtrl, 'P']}>
+                      {t('keybindings.printNote')}
+                    </Keys>
                   </li>
                 )}
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'P']}>
-                    Toggle Markdown preview
+                    {t('keybindings.toggleMarkdownPreview')}
                   </Keys>
                 </li>
                 <li>
                   <Keys keys={[CmdOrCtrl, 'Shift', 'C']}>
-                    Insert checklist item
+                    {t('keybindings.insertChecklist')}
                   </Keys>
                 </li>
               </ul>

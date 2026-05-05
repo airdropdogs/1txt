@@ -7,6 +7,7 @@ import CloudIcon from '../../../icons/cloud';
 import FileIcon from '../../../icons/file-small';
 import * as importers from '../importers';
 import WarningIcon from '../../../icons/warning';
+import { t } from '../../../i18n';
 
 function ImporterDropzone({
   acceptedTypes,
@@ -27,7 +28,7 @@ function ImporterDropzone({
       if (!importer) {
         setErrorMessage([
           ...errorMessage,
-          `The file type for "${file.name}" is not recognized`,
+          t('import.fileTypeNotRecognized').replace('{name}', file.name),
         ]);
         continue;
       }
@@ -40,9 +41,9 @@ function ImporterDropzone({
 
   const handleReject = (rejectedFiles) => {
     if (!multiple && rejectedFiles.length > 1) {
-      setErrorMessage([...errorMessage, 'Choose a single file']);
+      setErrorMessage([...errorMessage, t('import.chooseSingleFile')]);
     } else {
-      setErrorMessage([...errorMessage, 'File type is incorrect']);
+      setErrorMessage([...errorMessage, t('import.fileTypeIncorrect')]);
     }
     setAcceptedFile(undefined);
     onReset();
@@ -68,11 +69,17 @@ function ImporterDropzone({
       <Fragment>
         {errorMessage.length > 0 ? <WarningIcon /> : <CloudIcon />}
         {isDragActive ? (
-          'Drop files here'
+          t('import.dropFiles')
         ) : (
-          <div className="drop-instructions">
-            Drag and drop to select files or <span>browse</span> to choose
-          </div>
+          <div
+            className="drop-instructions"
+            dangerouslySetInnerHTML={{
+              __html: t('import.dragAndDrop').replace(
+                '{browse}',
+                `<span>${t('import.browse')}</span>`
+              ),
+            }}
+          />
         )}
       </Fragment>
     );
@@ -96,7 +103,9 @@ function ImporterDropzone({
     return (
       <Fragment>
         <div className="accepted-files-header">
-          {acceptedFile.length > 1 ? 'Import Files' : 'Import File'}
+          {acceptedFile.length > 1
+            ? t('import.importFiles')
+            : t('import.importFile')}
         </div>
         <ul className="accepted-files">{fileList}</ul>
         {errorMessage.length > 0 && (

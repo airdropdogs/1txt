@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PanelTitle from '../../../components/panel-title';
 import QuotaIndicator from '../../../quota-indicator';
 import actions from '../../../state/actions';
+import { t } from '../../../i18n';
 
 import * as S from '../../../state';
 
@@ -18,7 +19,7 @@ type Props = StateProps & DispatchProps;
 
 const AccountPanel: FunctionComponent<Props> = ({ accountName, logout }) => (
   <div className="settings-account">
-    <PanelTitle headingLevel={3}>Account</PanelTitle>
+    <PanelTitle headingLevel={3}>{t('settings.account.title')}</PanelTitle>
 
     <div className="settings-items">
       <div className="settings-item">
@@ -36,7 +37,7 @@ const AccountPanel: FunctionComponent<Props> = ({ accountName, logout }) => (
           className="button button-primary"
           onClick={logout}
         >
-          Log Out
+          {t('settings.account.logOut')}
         </button>
       </li>
     </ul>

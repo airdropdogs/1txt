@@ -7,6 +7,7 @@ import Dialog from '../../dialog';
 import TabPanels from '../../components/tab-panels';
 import PanelTitle from '../../components/panel-title';
 import actions from '../../state/actions';
+import { t } from '../../i18n';
 
 import * as S from '../../state';
 import * as T from '../../types';
@@ -70,14 +71,15 @@ export class ShareDialog extends Component<Props> {
     const { closeDialog } = this.props;
 
     return (
-      <Dialog className="settings" title="Collaborate" onDone={closeDialog}>
+      <Dialog
+        className="settings"
+        title={t('share.title')}
+        onDone={closeDialog}
+      >
         <div className="tab-panels__panel">
           <div className="tab-panels__column">
             <div className="settings-group">
-              <p>
-                Add an email address of another Simplenote user to share a note.
-                You&apos;ll both be able to edit and view the note.
-              </p>
+              <p>{t('share.description')}</p>
               <div className="settings-items">
                 <form
                   className="settings-item"
@@ -87,14 +89,14 @@ export class ShareDialog extends Component<Props> {
                     className="settings-item-text-input transparent-input"
                     // Regex to detect valid email
                     pattern="^[^@]+@.+"
-                    placeholder="email@example.com"
+                    placeholder={t('share.emailPlaceholder')}
                     ref={(e) => (this.collaboratorElement = e)}
                     spellCheck={false}
-                    title="Please enter a valid email"
+                    title={t('share.validEmail')}
                   />
                   <div className="settings-item-control">
                     <button type="submit" className="button button-borderless">
-                      Add Email
+                      {t('share.addEmail')}
                     </button>
                   </div>
                 </form>
@@ -102,7 +104,9 @@ export class ShareDialog extends Component<Props> {
             </div>
             <div className="settings-group">
               <div className="share-collaborators-heading">
-                <PanelTitle headingLevel={3}>Collaborators</PanelTitle>
+                <PanelTitle headingLevel={3}>
+                  {t('share.collaborators')}
+                </PanelTitle>
               </div>
               <ul className="share-collaborators">
                 {this.collaborators().map((collaborator) => (
@@ -124,7 +128,7 @@ export class ShareDialog extends Component<Props> {
                         collaborator
                       )}
                     >
-                      Remove
+                      {t('share.remove')}
                     </button>
                   </li>
                 ))}

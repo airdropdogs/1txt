@@ -15,6 +15,7 @@ import MenuIcon from '../icons/menu';
 import { withoutTags } from '../utils/filter-notes';
 import { createNote, toggleNavigation } from '../state/ui/actions';
 import * as selectors from '../state/selectors';
+import { t } from '../i18n';
 
 import * as S from '../state';
 import type * as T from '../types';
@@ -51,13 +52,13 @@ export const MenuBar: FunctionComponent<Props> = ({
       placeholder = openedTag;
       break;
     case 'trash':
-      placeholder = 'Trash';
+      placeholder = t('menubar.trash');
       break;
     case 'untagged':
-      placeholder = 'Untagged Notes';
+      placeholder = t('menubar.untaggedNotes');
       break;
     default:
-      placeholder = 'All Notes';
+      placeholder = t('menubar.allNotes');
       break;
   }
 
@@ -68,7 +69,7 @@ export const MenuBar: FunctionComponent<Props> = ({
       <IconButton
         icon={<MenuIcon />}
         onClick={toggleNavigation}
-        title={`Menu • ${CmdOrCtrl}+Shift+U`}
+        title={`${t('menubar.menu')} • ${CmdOrCtrl}+Shift+U`}
       />
       <div id="notes-title" className="notes-title" aria-hidden="true">
         {placeholder}
@@ -76,7 +77,7 @@ export const MenuBar: FunctionComponent<Props> = ({
       <IconButton
         icon={<NewNoteIcon />}
         onClick={() => onNewNote(withoutTags(searchQuery))}
-        title={`New Note • ${CmdOrCtrl}+Shift+I`}
+        title={`${t('menubar.newNote')} • ${CmdOrCtrl}+Shift+I`}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 const menuItems = require('./menu-items');
 const platform = require('../detect/platform');
 const { appCommandSender } = require('./utils');
+const { t } = require('../i18n');
 
 const buildFileMenu = (isAuthenticated) => {
   isAuthenticated = isAuthenticated || false;
@@ -10,20 +11,20 @@ const buildFileMenu = (isAuthenticated) => {
   if (isAuthenticated) {
     submenu = [
       {
-        label: '&New Note',
+        label: t('menu.file.newNote'),
         accelerator: 'CommandOrControl+Shift+I',
         click: appCommandSender({ action: 'newNote' }),
       },
       { type: 'separator' },
       {
-        label: '&Import Notes…',
+        label: t('menu.file.importNotes'),
         click: appCommandSender({
           action: 'showDialog',
           dialog: 'IMPORT',
         }),
       },
       {
-        label: '&Export Notes…',
+        label: t('menu.file.exportNotes'),
         accelerator: 'CommandOrControl+Shift+E',
         click: appCommandSender({
           action: 'exportNotes',
@@ -31,7 +32,7 @@ const buildFileMenu = (isAuthenticated) => {
       },
       { type: 'separator' },
       {
-        label: '&Print…',
+        label: t('menu.file.print'),
         accelerator: 'CommandOrControl+P',
         click: appCommandSender({ action: 'printNote' }),
       },
@@ -46,7 +47,7 @@ const buildFileMenu = (isAuthenticated) => {
   ];
 
   const fileMenu = {
-    label: '&File',
+    label: t('menu.file.title'),
     submenu: platform.isOSX()
       ? submenu
       : submenu.concat(defaultSubmenuAdditions),

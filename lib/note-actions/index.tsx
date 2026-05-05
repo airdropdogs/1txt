@@ -10,6 +10,7 @@ import getNoteTitleAndPreview from '../utils/note-utils';
 import Spinner from '../components/spinner';
 
 import actions from '../state/actions';
+import { t } from '../i18n';
 
 import * as S from '../state';
 import * as T from '../types';
@@ -125,7 +126,9 @@ export class NoteActions extends Component<Props> {
               htmlFor="note-actions-pin-checkbox"
             >
               <span className="note-actions-item-text">
-                <span className="note-actions-name">Pin to top</span>
+                <span className="note-actions-name">
+                  {t('actions.pinToTop')}
+                </span>
               </span>
               <span className="note-actions-item-control">
                 <CheckboxControl
@@ -144,7 +147,9 @@ export class NoteActions extends Component<Props> {
               htmlFor="note-actions-markdown-checkbox"
             >
               <span className="note-actions-item-text">
-                <span className="note-actions-name">Markdown</span>
+                <span className="note-actions-name">
+                  {t('actions.markdown')}
+                </span>
               </span>
               <span className="note-actions-item-control">
                 <CheckboxControl
@@ -163,7 +168,9 @@ export class NoteActions extends Component<Props> {
               htmlFor="note-actions-preview-button-checkbox"
             >
               <span className="note-actions-item-text">
-                <span className="note-actions-name">Show preview button</span>
+                <span className="note-actions-name">
+                  {t('actions.showPreviewButton')}
+                </span>
               </span>
               <span className="note-actions-item-control">
                 <CheckboxControl
@@ -179,7 +186,7 @@ export class NoteActions extends Component<Props> {
               <ClipboardButton
                 container={this.containerRef}
                 text={noteLink}
-                linkText="Copy Internal Link"
+                linkText={t('actions.copyInternalLink')}
               />
             </div>
 
@@ -188,7 +195,7 @@ export class NoteActions extends Component<Props> {
                 className="button button-borderless"
                 onClick={this.handleShowNoteInfo}
               >
-                Note info…
+                {t('actions.noteInfo')}
               </button>
             </div>
 
@@ -198,14 +205,14 @@ export class NoteActions extends Component<Props> {
                   className="button button-borderless"
                   onClick={this.props.toggleRevisions}
                 >
-                  History…
+                  {t('actions.history')}
                 </button>
               </div>
             )}
             {hasRevisions || (
               <div className="note-actions-item note-actions-item-disabled">
                 <span className="note-actions-disabled">
-                  History (unavailable)
+                  {t('actions.historyUnavailable')}
                 </span>
               </div>
             )}
@@ -216,7 +223,9 @@ export class NoteActions extends Component<Props> {
               htmlFor="note-actions-publish-checkbox"
             >
               <span className="note-actions-item-text">
-                <span className="note-actions-name">Publish</span>
+                <span className="note-actions-name">
+                  {t('actions.publish')}
+                </span>
               </span>
               <span className="note-actions-item-control">
                 <CheckboxControl
@@ -238,26 +247,20 @@ export class NoteActions extends Component<Props> {
                 <ClipboardButton
                   container={this.containerRef}
                   text={publishURL}
-                  linkText="Copy Link"
+                  linkText={t('actions.copyLink')}
                 />
               ) : isPublished && !publishURL ? (
                 <>
-                  <span className="note-actions-disabled">Copy Link</span>
+                  <span className="note-actions-disabled">
+                    {t('actions.copyLink')}
+                  </span>
                   <Spinner isWhite={false} size={16} thickness={5} />
                 </>
               ) : (
-                <span className="note-actions-disabled">Copy Link</span>
+                <span className="note-actions-disabled">
+                  {t('actions.copyLink')}
+                </span>
               )}
-            </div>
-          </div>
-          <div className="note-actions-panel">
-            <div className="note-actions-item">
-              <button
-                className="button button-borderless"
-                onClick={this.props.shareNote}
-              >
-                Collaborate…
-              </button>
             </div>
           </div>
           <div className="note-actions-panel">
@@ -266,7 +269,7 @@ export class NoteActions extends Component<Props> {
                 className="button button-borderless"
                 onClick={this.props.trashNote}
               >
-                Move to Trash
+                {t('actions.moveToTrash')}
               </button>
             </div>
           </div>

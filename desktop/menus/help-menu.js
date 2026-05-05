@@ -7,18 +7,19 @@ const log = require('../logger')('desktop:menu:help');
 const zipLogs = require('../logger/zip-logs');
 
 const { appCommandSender } = require('./utils');
+const { t } = require('../i18n');
 
 const buildHelpMenu = (mainWindow, isAuthenticated) => {
   isAuthenticated = isAuthenticated || false;
   const submenu = [
     {
-      label: 'Help && &Support',
+      label: t('menu.help.helpAndSupport'),
       accelerator: platform.isLinux() ? 'F1' : null,
       click: () =>
         shell.openExternal('https://github.com/airdropdogs/1txt#readme'),
     },
     {
-      label: '&Keyboard Shortcuts',
+      label: t('menu.help.keyboardShortcuts'),
       visible: isAuthenticated,
       click: appCommandSender({
         action: 'showDialog',
@@ -27,10 +28,10 @@ const buildHelpMenu = (mainWindow, isAuthenticated) => {
     },
     { type: 'separator' },
     {
-      label: 'Advanced',
+      label: t('menu.help.advanced'),
       submenu: [
         {
-          label: 'Debugging Console',
+          label: t('menu.help.debuggingConsole'),
           click: (item, focusedWindow) => focusedWindow?.toggleDevTools(),
         },
       ],
@@ -39,7 +40,7 @@ const buildHelpMenu = (mainWindow, isAuthenticated) => {
       type: 'separator',
     },
     {
-      label: 'Get Application Logs',
+      label: t('menu.help.getApplicationLogs'),
       click: function () {
         log.info("User selected 'Get Application Logs'...");
         zipLogs(mainWindow);
@@ -54,7 +55,7 @@ const buildHelpMenu = (mainWindow, isAuthenticated) => {
   ];
 
   const helpMenu = {
-    label: '&Help',
+    label: t('menu.help.title'),
     role: 'help',
     submenu: platform.isOSX()
       ? submenu

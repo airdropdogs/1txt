@@ -9,7 +9,14 @@
       "Bash(bash -c \"ls -lhS d:/www/1txt/dist/*.js 2>/dev/null | head -10; echo '---'; ls -lh d:/www/1txt/dist/index.html 2>/dev/null; echo '---'; head -20 d:/www/1txt/dist/index.html 2>/dev/null\")",
       "Bash(bash -c \"rm -rf dist && npx cross-env NODE_ENV=production webpack --config ./webpack.config.js 2>&1\")",
       "Bash(bash -c \"rm -rf dist && npx cross-env NODE_ENV=production webpack --config ./webpack.config.js 2>&1 | tail -20\")",
-      "Bash(bash -c \"echo '--- 主 bundle supabase 相关字符串 ---'; grep -c 'supabase/auth-js\\\\|GoTrueClient\\\\|signInWithOtp\\\\|verifyOtp' d:/www/1txt/dist/app.b0b45f1546b4066d6428.js 2>/dev/null; echo; echo '--- 异步 chunk 147 ---'; grep -c 'supabase/auth-js\\\\|GoTrueClient\\\\|signInWithOtp\\\\|verifyOtp' d:/www/1txt/dist/147.18a0fc1d75486bcd8539.js 2>/dev/null; echo; echo '--- 主 bundle 总大小 ---'; ls -lh d:/www/1txt/dist/app.b0b45f1546b4066d6428.js | awk '{print \\\\$5}'\")"
+      "Bash(bash -c \"echo '--- 主 bundle supabase 相关字符串 ---'; grep -c 'supabase/auth-js\\\\|GoTrueClient\\\\|signInWithOtp\\\\|verifyOtp' d:/www/1txt/dist/app.b0b45f1546b4066d6428.js 2>/dev/null; echo; echo '--- 异步 chunk 147 ---'; grep -c 'supabase/auth-js\\\\|GoTrueClient\\\\|signInWithOtp\\\\|verifyOtp' d:/www/1txt/dist/147.18a0fc1d75486bcd8539.js 2>/dev/null; echo; echo '--- 主 bundle 总大小 ---'; ls -lh d:/www/1txt/dist/app.b0b45f1546b4066d6428.js | awk '{print \\\\$5}'\")",
+      "Bash(bash -c \"mkdir -p d:/www/1txt/lib/i18n/locales\")",
+      "Bash(New-Item -ItemType Directory -Path \"desktop\\\\i18n\\\\locales\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"desktop\\\\i18n\\\\locales\" -Force)",
+      "PowerShell(Copy-Item \"lib\\\\i18n\\\\locales\\\\en.json\" \"desktop\\\\i18n\\\\locales\\\\en.json\")",
+      "PowerShell(Copy-Item \"lib\\\\i18n\\\\locales\\\\zh-CN.json\" \"desktop\\\\i18n\\\\locales\\\\zh-CN.json\")",
+      "PowerShell(Copy-Item \"lib\\\\i18n\\\\locales\\\\en.json\" \"desktop\\\\i18n\\\\locales\\\\en.json\" -Force)",
+      "PowerShell(Copy-Item \"lib\\\\i18n\\\\locales\\\\zh-CN.json\" \"desktop\\\\i18n\\\\locales\\\\zh-CN.json\" -Force)"
     ]
   }
 }

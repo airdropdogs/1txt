@@ -5,6 +5,7 @@ import Dialog from '../../dialog';
 import { isElectron } from '../../utils/platform';
 import SourceImporter from './source-importer';
 import { closeDialog } from '../../state/ui/actions';
+import { t } from '../../i18n';
 
 import * as S from '../../state';
 
@@ -26,19 +27,19 @@ class ImportDialog extends Component<Props> {
       acceptedTypes: isElectron
         ? '.txt,.md,.json,.zip,.enex'
         : '.txt,.md,.zip,.json',
-      title: `Select the notes you'd like to import.`,
+      title: t('import.selectNotes'),
       instructions: isElectron
-        ? 'Accepted file formats: Simplenote (JSON, ZIP), Text (TXT, MD) and Evernote (ENEX).'
-        : 'Accepted file formats: Simplenote (JSON, ZIP) and Text (TXT, MD).',
+        ? t('import.formatsElectron')
+        : t('import.formatsBrowser'),
       multiple: true,
     };
 
     return (
       <Dialog
         className="import"
-        closeBtnLabel={importStarted ? '' : 'Cancel'}
+        closeBtnLabel={importStarted ? '' : t('import.cancel')}
         onDone={importStarted ? undefined : closeDialog}
-        title="Import Notes"
+        title={t('import.title')}
       >
         <div className="import__inner">
           <SourceImporter

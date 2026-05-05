@@ -36,6 +36,7 @@ const KNOWN_SETTINGS_KEYS = [
   'showPreviewButton',
   'spellCheckEnabled',
   'theme',
+  'locale',
 ] as const;
 
 import * as persistence from './persistence';

@@ -2,9 +2,10 @@ const { app, BrowserWindow } = require('electron');
 
 const { appCommandSender } = require('./utils');
 const updater = require('../updater');
+const { t } = require('../i18n');
 
 const about = {
-  label: '&About ' + (app ? app.name : '1TXT'),
+  label: t('menu.common.about'),
   click: appCommandSender({
     action: 'showDialog',
     dialog: 'ABOUT',
@@ -12,14 +13,13 @@ const about = {
 };
 
 const checkForUpdates = {
-  label: '&Check for Updates…',
-  click: () =>
-    updater.pingAndShowProgress(BrowserWindow.getFocusedWindow()),
+  label: t('menu.common.checkForUpdates'),
+  click: () => updater.pingAndShowProgress(BrowserWindow.getFocusedWindow()),
 };
 
 const emptyTrash = (isAuthenticated) => {
   return {
-    label: '&Empty Trash',
+    label: t('menu.common.emptyTrash'),
     visible: isAuthenticated,
     click: appCommandSender({ action: 'emptyTrash' }),
   };
@@ -27,7 +27,7 @@ const emptyTrash = (isAuthenticated) => {
 
 const preferences = (isAuthenticated) => {
   return {
-    label: 'P&references…',
+    label: t('menu.common.preferences'),
     visible: isAuthenticated,
     accelerator: 'CommandOrControl+,',
     click: appCommandSender({
@@ -39,7 +39,7 @@ const preferences = (isAuthenticated) => {
 
 const signout = (isAuthenticated) => {
   return {
-    label: '&Sign Out',
+    label: t('menu.common.signOut'),
     visible: isAuthenticated,
     click: appCommandSender({
       action: 'logout',

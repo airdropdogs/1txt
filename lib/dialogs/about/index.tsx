@@ -4,6 +4,7 @@ import SimplenoteLogo from '../../icons/simplenote';
 import CrossIcon from '../../icons/cross';
 import TopRightArrowIcon from '../../icons/arrow-top-right';
 import Dialog from '../../dialog';
+import { t } from '../../i18n';
 
 const appVersion = config.version;
 
@@ -20,7 +21,7 @@ export class AboutDialog extends Component<Props> {
 
     return (
       <div className="about">
-        <Dialog hideTitleBar onDone={closeDialog} title="About">
+        <Dialog hideTitleBar onDone={closeDialog} title={t('about.title')}>
           <div className="about-top">
             <SimplenoteLogo />
 
@@ -35,7 +36,9 @@ export class AboutDialog extends Component<Props> {
                 href="https://github.com/airdropdogs/1txt"
                 rel="noopener noreferrer"
               >
-                <span className="about-links-title">Source Code</span>
+                <span className="about-links-title">
+                  {t('about.sourceCode')}
+                </span>
                 <br />
                 github.com/airdropdogs/1txt
               </a>
@@ -47,9 +50,11 @@ export class AboutDialog extends Component<Props> {
                 href="https://github.com/airdropdogs/1txt/issues"
                 rel="noopener noreferrer"
               >
-                <span className="about-links-title">Issues &amp; Feedback</span>
+                <span className="about-links-title">
+                  {t('about.issuesFeedback')}
+                </span>
                 <br />
-                Report a bug or request a feature
+                {t('about.reportBug')}
               </a>
               <TopRightArrowIcon />
             </li>
@@ -60,10 +65,10 @@ export class AboutDialog extends Component<Props> {
                 rel="noopener noreferrer"
               >
                 <span className="about-links-title">
-                  Built on Simplenote (GPL-2.0)
+                  {t('about.builtOnSimplenote')}
                 </span>
                 <br />
-                Original project by Automattic, Inc.
+                {t('about.originalByAutomattic')}
               </a>
               <TopRightArrowIcon />
             </li>
@@ -74,29 +79,23 @@ export class AboutDialog extends Component<Props> {
                 rel="noopener noreferrer"
               >
                 <span className="about-links-title">
-                  Editor powered by Vditor (MIT)
+                  {t('about.editorPoweredBy')}
                 </span>
                 <br />
-                Markdown WYSIWYG by Vanessa219
+                {t('about.markdownWysiwyg')}
               </a>
               <TopRightArrowIcon />
             </li>
           </ul>
 
           <div className="about-bottom">
-            <p>
-              Open-source minimalist Markdown notes with live preview and
-              free multi-device sync, powered by Supabase.
-            </p>
-            <p>
-              &copy; {thisYear} airdropdogs · Released under the GNU
-              General Public License v2.0.
-            </p>
+            <p>{t('about.description')}</p>
+            <p>{t('about.copyright').replace('{year}', String(thisYear))}</p>
           </div>
 
           <button
             type="button"
-            aria-label="Close dialog"
+            aria-label={t('about.closeDialog')}
             className="about-done button"
             onClick={closeDialog}
           >
